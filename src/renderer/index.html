@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:">
+  <title>Mod Launcher</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+  <div id="app">
+    <aside id="sidebar">
+      <div class="logo">
+        <img class="logo-mark" src="logo.png" alt="">
+        <span class="logo-text" id="logoText"></span>
+      </div>
+      <nav id="nav"></nav>
+      <div class="side-spacer"></div>
+      <div class="side-bottom" id="sideBottom"></div>
+    </aside>
+    <main id="content">
+      <div class="topbar" id="topbar"></div>
+      <div id="view"></div>
+      <div id="launchBar" hidden></div>
+    </main>
+  </div>
+  <div id="modalBackdrop" hidden><div id="modal" role="dialog"></div></div>
+  <div id="toast" hidden></div>
+  <script src="i18n.js"></script>
+  <script src="demo.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

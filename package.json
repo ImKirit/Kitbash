@@ -1,0 +1,25 @@
+{
+  "name": "kitbash",
+  "version": "0.1.0",
+  "description": "Mod launcher: pick a game, pick mods, press Launch. The game folder is put back when you close the game.",
+  "author": "ImKirit <main@kirit.xyz>",
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev --catalog ../Kitbash-Mods",
+    "test": "node --test \"test/*.test.js\"",
+    "icon": "node scripts/make-icon.js",
+    "screenshots": "electron scripts/screenshot.js",
+    "publish-mod": "node scripts/publish-mod.js",
+    "cli": "node src/main/cli.js",
+    "dist": "electron-builder --win nsis --config electron-builder.config.js"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  }
+}
