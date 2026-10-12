@@ -102,7 +102,8 @@ between, the next start finishes the clean-up from a journal.
 - **Other people's catalogs.** Add a GitHub repository or a catalog URL under `Sources`. Its mods
   are marked `Unofficial` wherever they appear, and you confirm a plain warning when adding the
   source and again before its first download.
-- **German and English**, light and dark theme.
+- **Game icons from your own install.** Each game shows the icon of its installed exe, read on your PC and cached. Nothing is bundled.
+- **German and English**, dark theme by default, light theme in the settings.
 - **Updates itself** from GitHub releases: checked on start and every four hours, downloaded in
   the background, installed when you quit.
 
@@ -113,8 +114,8 @@ between, the next start finishes the clean-up from a journal.
 | <img src="docs/mod.png" width="420" alt="Mod page"> | <img src="docs/modpack-edit.png" width="420" alt="Editing a modpack"> |
 | **Downloads** | **Sources** |
 | <img src="docs/downloads.png" width="420" alt="Downloaded packages"> | <img src="docs/sources.png" width="420" alt="Catalog sources"> |
-| **Warning for unofficial sources** | **Dark theme, German** |
-| <img src="docs/source-warning.png" width="420" alt="Warning before adding an unofficial source"> | <img src="docs/mod-dark-de.png" width="420" alt="Dark theme in German"> |
+| **Warning for unofficial sources** | **Light theme, German** |
+| <img src="docs/source-warning.png" width="420" alt="Warning before adding an unofficial source"> | <img src="docs/mod-light-de.png" width="420" alt="Light theme in German"> |
 
 ## Safety
 

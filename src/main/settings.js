@@ -6,7 +6,7 @@ const { readJson, writeJsonAtomic } = require('./util');
 
 const DEFAULTS = {
   lang: null,            // null = follow the system
-  theme: 'light',        // light | dark
+  theme: 'dark',         // dark | light
   catalogSource: '',     // empty = the built-in official catalog. A folder or URL here replaces it (for testing)
   sources: [],           // unofficial sources the user added: { id, url, name, confirmedDownload, addedAt }
   minecraftPath: '',     // extra folder to look for Minecraft Java in

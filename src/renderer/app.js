@@ -29,7 +29,7 @@ const ICONS = {
   folder: '<path d="M3 6h6l2 2h10v11H3z"/>',
   game: '<rect x="3" y="7" width="18" height="11" rx="3"/><path d="M8 11v3M6.5 12.5h3M16 12h.5M18 13.5h.5"/>',
 };
-const ico = (n, size = 16) => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
+const ico = (n, size = 16) => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
 
 // ---- lookups -------------------------------------------------------------------
 const gameOf = (id) => S.games.find((g) => g.id === id);
@@ -63,6 +63,13 @@ function toast(text) {
   toast.t = setTimeout(() => { el.hidden = true; }, 2600);
 }
 
+// The game's own icon (from the installed exe), or a letter tile.
+function gicon(g, px) {
+  if (g && g.icon) return `<img class="gicon" src="${esc(g.icon)}" width="${px}" height="${px}" alt="">`;
+  const letter = g ? g.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 1) : '?';
+  return `<span class="gicon fallback" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.5)}px">${esc(letter)}</span>`;
+}
+
 // ---- chips ---------------------------------------------------------------------
 function sourceChip(src) {
   return src.official ? '' : `<span class="chip bad" title="${esc(T('From an unofficial source: {name}. Not checked by anyone.', { name: src.name }))}">${ico('warn', 11)} ${esc(T('Unofficial'))}</span>`;
@@ -87,15 +94,15 @@ function downloadChip(m) {
 function renderNav() {
   $('logoText').textContent = S.brand.name;
   document.title = S.brand.name;
-  const item = (v, icon, label, count, extra = '') => {
+  const item = (v, icon, label, count, extra = '', lead = '') => {
     const on = view.name === v.name && (v.gameId || '') === (view.gameId || '') || (v.name === 'game' && view.name === 'mod' && view.gameId === v.gameId);
-    return `<div class="nav-item${on ? ' active' : ''}" data-act="go" data-view='${esc(JSON.stringify(v))}'>${ico(icon)}<span>${esc(label)}</span>${extra}${count != null ? `<span class="count">${count}</span>` : ''}</div>`;
+    return `<div class="nav-item${on ? ' active' : ''}" data-act="go" data-view='${esc(JSON.stringify(v))}'>${lead || ico(icon)}<span>${esc(label)}</span>${extra}${count != null ? `<span class="count">${count}</span>` : ''}</div>`;
   };
   let html = item({ name: 'home' }, 'home', T('Home'));
   html += `<div class="side-head">${esc(T('Games'))}</div>`;
   for (const g of S.games) {
     const live = isActive(g.id) ? '<span class="dot live"></span>' : '';
-    html += item({ name: 'game', gameId: g.id }, 'game', g.name, g.status === 'available' ? modsOf(g.id).length : null, live);
+    html += item({ name: 'game', gameId: g.id }, null, g.name, g.status === 'available' ? modsOf(g.id).length : null, live, gicon(g, 18));
   }
   html += `<div class="side-head">${esc(T('More'))}</div>`;
   html += item({ name: 'library' }, 'down', T('Downloads'), S.library.length || null);
@@ -183,7 +190,7 @@ function viewHome() {
     const n = modsOf(g.id).length;
     const off = g.status !== 'available';
     html += `<div class="card game-card ${off ? 'off' : 'click'}" ${off ? '' : `data-act="go" data-view='${esc(JSON.stringify({ name: 'game', gameId: g.id }))}'`}>
-      <div class="gname">${esc(g.name)}</div><div class="gtag">${esc(tx(g.tagline))}</div>
+      <div class="ghead">${gicon(g, 44)}<div class="gname">${esc(g.name)}</div></div><div class="gtag">${esc(tx(g.tagline))}</div>
       <div class="gfoot">${off ? '' : `<span>${esc(T(n === 1 ? '{n} mod' : '{n} mods', { n }))}</span>`}${sourceChip(g.source)}<span class="grow"></span>${gameStatus(g)}</div></div>`;
   }
   html += '</div>';
@@ -203,7 +210,7 @@ function modRow(m, selectable) {
   const on = selectable && sel(m.game).has(m.id);
   const box = selectable ? `<div class="check${on ? ' on' : ''}" data-act="toggle" data-mod="${esc(m.id)}">${ico('check', 14)}</div>` : '';
   return `<div class="lrow click" data-act="go" data-view='${esc(JSON.stringify({ name: 'mod', gameId: m.game, modId: m.id }))}'>${box}
-    <div class="main"><div class="title">${esc(tx(m.name))} ${modChips(m)}</div><div class="sub">${selectable ? '' : esc(g ? g.name + ' · ' : '')}${esc(tx(m.summary))}</div></div>
+    <div class="main"><div class="title">${esc(tx(m.name))} ${modChips(m)}</div><div class="sub">${selectable ? '' : `<span class="of-game">${gicon(g, 16)}${esc(g ? g.name : '')}</span> · `}${esc(tx(m.summary))}</div></div>
     ${downloadChip(m)}</div>`;
 }
 
@@ -213,7 +220,7 @@ function packRow(p) {
   const missing = p.mods.filter((r) => !modOf(r.id)).length;
   return `<div class="lrow"><div class="main"><div class="title">${esc(p.name)} <span class="chip">${esc(T(p.mods.length === 1 ? '{n} mod' : '{n} mods', { n: p.mods.length }))}</span>
       ${missing ? `<span class="chip bad">${esc(T('{n} not available', { n: missing }))}</span>` : ''}</div>
-      <div class="sub">${esc(g ? g.name : p.gameId)} · ${esc(names.join(', ') || T('empty'))}</div></div>
+      <div class="sub"><span class="of-game">${gicon(g, 16)}${esc(g ? g.name : p.gameId)}</span> · ${esc(names.join(', ') || T('empty'))}</div></div>
     <button class="btn small" data-act="pack-share" data-pack="${esc(p.id)}">${esc(T('Share'))}</button>
     <button class="btn small" data-act="pack-edit" data-pack="${esc(p.id)}">${esc(T('Edit'))}</button>
     <button class="btn small primary" data-act="pack-launch" data-pack="${esc(p.id)}" ${!g || !g.installed || isActive(p.gameId) || !p.mods.length ? 'disabled' : ''}>${ico('play', 12)} ${esc(T('Launch'))}</button></div>`;
@@ -288,7 +295,7 @@ function viewGame() {
   if (!g) return viewHome();
   const mods = modsOf(g.id);
   const tab = view.tab || 'mods';
-  let html = `<div class="wrap"><div class="page-head"><div class="grow"><div class="label">${esc(T('Game'))}</div><h2>${esc(g.name)}</h2>
+  let html = `<div class="wrap"><div class="page-head"><div class="grow"><div class="title-row">${gicon(g, 52)}<div><div class="label">${esc(T('Game'))}</div><h2>${esc(g.name)}</h2></div></div>
     <div class="meta">${gameStatus(g)}${sourceChip(g.source)}<span class="muted">${esc(g.installed ? g.dir : T('Install the game through Steam first.'))}</span></div></div>
     ${g.installed ? `<button class="btn small" data-act="open-game" data-game="${esc(g.id)}">${ico('folder', 14)} ${esc(T('Game folder'))}</button>` : ''}</div>`;
   if (sessionOf(g.id)) return html + sessionPanel(g.id) + '</div>';
@@ -373,7 +380,7 @@ function viewMod() {
   const unofficial = m.source.official ? '' : `<div class="banner bad">${ico('warn', 18)}<div class="grow"><b>${esc(T('Unofficial source: {name}', { name: m.source.name }))}</b>
     <div class="muted">${esc(T('This mod does not come from the official catalog. Nobody has checked it. A mod is program code that runs inside the game with your rights. Only use it if you trust the people behind this source.'))}</div></div></div>`;
 
-  return `<div class="wrap">${unofficial}<div class="page-head"><div class="grow"><div class="label">${esc(g.name)} · ${esc(T('by {author}', { author: m.author }))}</div><h2>${esc(tx(m.name))}</h2>
+  return `<div class="wrap">${unofficial}<div class="page-head"><div class="grow"><div class="title-row">${gicon(g, 52)}<div><div class="label"><span class="of-game">${esc(T('Mod for {game}', { game: g.name }))}</span> · ${esc(T('by {author}', { author: m.author }))}</div><h2>${esc(tx(m.name))}</h2></div></div>
       <div class="meta">${modChips(m)}${downloadChip(m)}</div></div>
       ${dlBtn}<button class="btn" data-act="pack-add" data-mod="${esc(m.id)}">${esc(T('Add to modpack'))}</button>
       <button class="btn primary big" data-act="launch-one" data-mod="${esc(m.id)}" ${blocked ? 'disabled' : ''}>${ico('play', 14)} ${esc(T('Launch'))}</button></div>
@@ -385,6 +392,7 @@ function viewMod() {
       <div class="list"><div class="lhead">${esc(T('You need'))}</div>${req}</div>
       ${notes ? `<div class="list"><div class="lhead">${esc(T('You should know'))}</div>${notes}</div>` : ''}
       <div class="list"><div class="lhead">${esc(T('Details'))}</div>
+        <div class="kv"><span class="k">${esc(T('Game'))}</span><span class="v of-game">${gicon(g, 16)}${esc(g.name)}</span></div>
         <div class="kv"><span class="k">${esc(T('Version'))}</span><span class="v">${esc(m.version)}${m.released ? ' · ' + esc(m.released) : ''}</span></div>
         <div class="kv"><span class="k">${esc(T('Source'))}</span><span class="v">${esc(m.source.official ? T('Official catalog') : m.source.name + ' (' + T('unofficial') + ')')}</span></div>
         <div class="kv"><span class="k">${esc(T('Mod loader'))}</span><span class="v">${esc(loader ? loader.name + ' ' + loader.version : m.loader)}</span></div>
@@ -432,7 +440,7 @@ function viewSettings() {
       <div class="lrow"><div class="main"><div class="title">${esc(T('Language'))}</div></div>
         <select class="input" style="width:220px" data-change="lang">${opt('', st.lang, T('Like the system'))}${opt('de', st.lang, 'Deutsch')}${opt('en', st.lang, 'English')}</select></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Theme'))}</div></div>
-        <select class="input" style="width:220px" data-change="theme">${opt('light', st.theme, T('Light'))}${opt('dark', st.theme, T('Dark'))}</select></div></div>
+        <select class="input" style="width:220px" data-change="theme">${opt('dark', st.theme, T('Dark'))}${opt('light', st.theme, T('Light'))}</select></div></div>
     <div class="section"><div class="list"><div class="lhead">${esc(T('Finding things'))}</div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Minecraft folder'))}</div><div class="sub">${esc(st.minecraftPath || T('Only needed if your Minecraft Java is not found by itself.'))}</div></div>
         ${st.minecraftPath ? `<button class="btn small" data-act="mc-clear">${esc(T('Reset'))}</button>` : ''}<button class="btn small" data-act="mc-pick">${esc(T('Choose folder'))}</button></div>
@@ -482,6 +490,7 @@ function renderModal() {
     const gone = p.mods.filter((r) => !modOf(r.id)).map((r) => `<div class="lrow"><div class="main"><div class="title">${esc(r.id)} <span class="chip bad">${esc(T('not available'))}</span></div></div>
       <button class="btn small" data-act="pack-drop" data-mod="${esc(r.id)}">${esc(T('Remove'))}</button></div>`).join('');
     h = `<div class="mhead">${esc(p.id ? T('Edit modpack') : T('New modpack'))} · ${esc((gameOf(p.gameId) || { name: p.gameId }).name)}</div><div class="mbody">
+      <div class="of-game">${gicon(gameOf(p.gameId), 22)}<b>${esc((gameOf(p.gameId) || { name: p.gameId }).name)}</b></div>
       <label class="field"><span>${esc(T('Name'))}</span><input class="input" id="packName" maxlength="60" value="${esc(p.name)}" placeholder="${esc(T('Friday night'))}"></label>
       <div class="field"><span>${esc(T('Mods in this pack'))}</span><div class="picklist">${rows}${gone}</div></div>
       ${modal.problems && modal.problems.length ? modal.problems.map((x) => `<div class="err">${esc(problemText(x))}</div>`).join('') : ''}
@@ -521,7 +530,7 @@ function renderModal() {
 // ---- render --------------------------------------------------------------------
 function render() {
   if (!S) return;
-  document.body.dataset.theme = S.settings.theme === 'dark' ? 'dark' : 'light';
+  document.body.dataset.theme = S.settings.theme === 'light' ? 'light' : 'dark';
   document.documentElement.lang = S.lang;
   window.setLang(S.lang);
   renderNav();
@@ -533,6 +542,8 @@ function render() {
   v.scrollTop = render.last === JSON.stringify(view) ? top : 0;
   render.last = JSON.stringify(view);
   renderLaunchBar();
+  // everything clickable is reachable with the keyboard
+  for (const el of document.querySelectorAll('[data-act]:not(button):not([tabindex])')) el.tabIndex = 0;
 }
 
 async function reload() {
@@ -677,7 +688,10 @@ document.addEventListener('change', async (e) => {
   S = await api.saveSettings({ [key]: e.target.value || null });
   render();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal) ACTIONS['modal-close'](); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal) ACTIONS['modal-close']();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-act]:not(button)')) { e.preventDefault(); e.target.click(); }
+});
 
 api.onChanged(reload);
 api.onSession((s) => { if (S) { S.sessions = s; render(); } });

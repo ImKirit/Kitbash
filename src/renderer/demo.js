@@ -16,7 +16,7 @@ if (!window.launcher) {
 
   const state = {
     brand: { name: 'Launcher', homepage: '' }, version: '0.1.0', dev: false, lang: 'en',
-    settings: { lang: null, theme: 'light', minecraftPath: '', selection: {} },
+    settings: { lang: null, theme: 'dark', minecraftPath: '', selection: {} },
     steamFound: true,
     games: [
       game('repo', 'R.E.P.O.', L('Co-op horror with physics.', 'Koop-Horror mit Physik.')),

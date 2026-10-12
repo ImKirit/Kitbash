@@ -16,6 +16,7 @@ const { runSession, resumeSession, buildPlan, requirementProblems } = require('.
 const { checkRequirements } = require('./requirements');
 const steamLib = require('./steam');
 const proc = require('./proc');
+const { largestIcon } = require('./exeicon');
 
 app.setName(brand.productName);
 app.setAppUserModelId(brand.appId);
@@ -54,6 +55,38 @@ function gameInstall(game) {
   return { installed: !!(a && a.installed), dir: a && a.installed ? a.dir : null };
 }
 
+// The game's own icon, read from the installed exe and cached as a PNG in
+// the data folder. Nothing is shipped with the launcher. Returns a file URL.
+const iconMemo = new Map();
+function gameIcon(game, dir) {
+  if (!dir || !game.executable) return null;
+  const exe = path.join(dir, game.executable);
+  let st;
+  try { st = fs.statSync(exe); } catch { return null; }
+  const name = String(game.id).replace(/[^a-z0-9@-]/g, '') + '-' + st.size + '-' + Math.round(st.mtimeMs) + '.png';
+  const file = path.join(dataDir, 'cache', 'icons', name);
+  if (iconMemo.has(file)) return iconMemo.get(file);
+  let url = null;
+  try {
+    if (!fs.existsSync(file)) {
+      const found = largestIcon(exe);
+      let png = found && found.png;
+      if (found && !png) {
+        const tmp = file.replace(/\.png$/, '.ico');
+        fs.mkdirSync(path.dirname(tmp), { recursive: true });
+        fs.writeFileSync(tmp, found.ico);
+        const img = nativeImage.createFromPath(tmp);
+        fs.rmSync(tmp, { force: true });
+        if (!img.isEmpty()) png = img.toPNG();
+      }
+      if (png) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, png); }
+    }
+    if (fs.existsSync(file)) url = pathToFileURL(file).href;
+  } catch { url = null; }
+  iconMemo.set(file, url);
+  return url;
+}
+
 async function refreshCatalogs() {
   merged = await sources.refresh();
   changed();
@@ -63,7 +96,7 @@ async function refreshCatalogs() {
 function buildState() {
   const seen = settings.get('seen');
   const firstRun = Object.keys(seen).length === 0;
-  const games = merged.games.map((g) => ({ ...g, ...gameInstall(g) }));
+  const games = merged.games.map((g) => { const inst = gameInstall(g); return { ...g, ...inst, icon: gameIcon(g, inst.dir) }; });
   const mods = merged.mods.map((m) => ({
     ...m,
     download: sources.downloadState(m),
@@ -149,7 +182,7 @@ async function recoverPending() {
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 1020, minHeight: 680,
-    backgroundColor: settings.get('theme') === 'dark' ? '#0d0d0d' : '#f4f4f1',
+    backgroundColor: settings.get('theme') === 'light' ? '#f4f4f1' : '#0a0a0b',
     icon: ICON, show: false, autoHideMenuBar: true, title: brand.productName,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

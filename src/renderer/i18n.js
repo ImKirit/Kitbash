@@ -81,7 +81,7 @@
     'Unofficial source: {name}': 'Inoffizielle Quelle: {name}',
     'This mod does not come from the official catalog. Nobody has checked it. A mod is program code that runs inside the game with your rights. Only use it if you trust the people behind this source.':
       'Diese Mod kommt nicht aus dem offiziellen Katalog. Niemand hat sie geprüft. Eine Mod ist Programmcode, der im Spiel mit deinen Rechten läuft. Benutz sie nur, wenn du den Leuten hinter dieser Quelle vertraust.',
-    'by {author}': 'von {author}', 'Keys': 'Tasten', 'You need': 'Das brauchst du', 'You should know': 'Das solltest du wissen', 'Details': 'Details',
+    'by {author}': 'von {author}', 'Mod for {game}': 'Mod für {game}', 'Keys': 'Tasten', 'You need': 'Das brauchst du', 'You should know': 'Das solltest du wissen', 'Details': 'Details',
     'Version': 'Version', 'Source': 'Quelle', 'Official catalog': 'Offizieller Katalog', 'Mod loader': 'Mod-Loader', 'Package': 'Paket', 'Kept data': 'Gesicherte Daten', 'nothing yet': 'noch nichts',
 
     'What is on this PC': 'Was auf diesem PC liegt',

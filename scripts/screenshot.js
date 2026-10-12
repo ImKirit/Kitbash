@@ -11,6 +11,10 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const brand = require('../src/brand');
+const { nativeImage } = require('electron');
+const os = require('os');
+const steamLib = require('../src/main/steam');
+const { largestIcon } = require('../src/main/exeicon');
 
 const ROOT = path.join(__dirname, '..');
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : fallback; };
@@ -24,18 +28,40 @@ app.whenReady().then(async () => {
   const imgs = {};
   for (const m of catalog.mods) for (const rel of m.images || []) imgs[m.id + '|' + rel] = pathToFileURL(path.join(CATALOG, rel)).href;
 
-  const win = new BrowserWindow({ width: 1280, height: 820, show: false, backgroundColor: '#f4f4f1', webPreferences: { offscreen: true } });
+  // Game icons come from the games installed on this PC, like in the real app.
+  // They are written to a temp folder, never into the repository.
+  const icons = {};
+  const steam = steamLib.findSteam();
+  const iconDir = fs.mkdtempSync(path.join(os.tmpdir(), 'launcher-icons-'));
+  for (const g of catalog.games) {
+    if (!steam || !g.steam || !g.executable) continue;
+    const a = steamLib.findApp(steam.path, g.steam.appId);
+    const found = a && a.installed ? largestIcon(path.join(a.dir, g.executable)) : null;
+    if (!found) continue;
+    let png = found.png;
+    if (!png) { const t = path.join(iconDir, g.id + '.ico'); fs.writeFileSync(t, found.ico); const img = nativeImage.createFromPath(t); if (!img.isEmpty()) png = img.toPNG(); }
+    if (png) { const f = path.join(iconDir, g.id + '.png'); fs.writeFileSync(f, png); icons[g.id] = pathToFileURL(f).href; console.log('icon', g.id, found.size + 'px'); }
+  }
+
+  const win = new BrowserWindow({ width: 1280, height: 820, show: false, backgroundColor: '#0a0a0b', webPreferences: { offscreen: true } });
   let last = null;
   win.webContents.on('paint', (_e, _dirty, image) => { last = image; });
   win.webContents.setFrameRate(10);
+  win.webContents.on('console-message', (_e, level, message, line, source) => { if (level >= 2) console.log('page error:', message, path.basename(String(source)) + ':' + line); });
   const js = (code) => win.webContents.executeJavaScript(code);
   const shot = async (name) => {
-    await sleep(350);
-    win.webContents.invalidate();
-    await sleep(650);
-    if (!last) throw new Error('no frame for ' + name);
-    fs.writeFileSync(path.join(OUT, name), last.toPNG());
-    console.log('wrote', name);
+    await sleep(450);
+    let image = null;
+    for (let i = 0; i < 5; i++) {
+      win.webContents.invalidate();
+      await sleep(350);
+      image = await win.webContents.capturePage();
+      if (!image.isEmpty()) break;
+    }
+    if (!image || image.isEmpty()) image = last;
+    if (!image || image.isEmpty()) throw new Error('no frame for ' + name);
+    fs.writeFileSync(path.join(OUT, name), image.toPNG());
+    console.log('wrote', name, image.getSize().width + 'x' + image.getSize().height);
   };
 
   await win.loadFile(path.join(ROOT, 'src', 'renderer', 'index.html'));
@@ -48,6 +74,8 @@ app.whenReady().then(async () => {
     s.sources[0].url = ${JSON.stringify(brand.officialCatalogUrl)};
     d.loadCatalog(${JSON.stringify(catalog)});
     s.demoImages = ${JSON.stringify(imgs)};
+    const icons = ${JSON.stringify(icons)};
+    for (const g of s.games) g.icon = icons[g.id] || null;
     const m = (id) => s.mods.find((x) => x.id === id);
     m('repomimesis').download.state = 'ready';
     m('repomimesis').kept = { exists: true, bytes: 482113, savedAt: new Date(Date.now() - 3 * 3600e3).toISOString() };
@@ -76,6 +104,8 @@ app.whenReady().then(async () => {
   await sleep(400);
 
   const go = (v) => js(`window.__go(${JSON.stringify(v)})`);
+  await go({ name: 'settings' });
+  await sleep(300);
   await go({ name: 'home' });
   await shot('home.png');
 
@@ -126,13 +156,13 @@ app.whenReady().then(async () => {
   await go({ name: 'settings' });
   await shot('settings.png');
 
-  // German and dark
-  await js(`window.launcher.saveSettings({ lang: 'de', theme: 'dark' }).then(() => window.__demo.refresh())`);
+  // German and the light theme
+  await js(`window.launcher.saveSettings({ lang: 'de', theme: 'light' }).then(() => window.__demo.refresh())`);
   await sleep(300);
   await go({ name: 'home' });
-  await shot('home-dark-de.png');
+  await shot('home-light-de.png');
   await go({ name: 'mod', gameId: 'repo', modId: 'repomimesis' });
-  await shot('mod-dark-de.png');
+  await shot('mod-light-de.png');
 
   app.quit();
 }).catch((e) => { console.error(e); app.exit(1); });
