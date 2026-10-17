@@ -14,6 +14,7 @@ const picked = {};                  // gameId -> Set of mod ids
 const checks = {};                  // key -> result of checkMods
 const images = {};                  // "mod|rel" -> url
 let modal = null;
+let query = '';                     // search text in Browse
 
 const ICONS = {
   home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
@@ -28,6 +29,19 @@ const ICONS = {
   warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
   folder: '<path d="M3 6h6l2 2h10v11H3z"/>',
   game: '<rect x="3" y="7" width="18" height="11" rx="3"/><path d="M8 11v3M6.5 12.5h3M16 12h.5M18 13.5h.5"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+  dots: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
+  key: '<rect x="2.5" y="7" width="19" height="11" rx="2"/><path d="M6 11h1M10 11h1M14 11h1M18 11h0M7 14.5h10"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  log: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',
+  image: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
+  layersPlus: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+  screen: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
 };
 const ico = (n, size = 16) => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
 
@@ -95,20 +109,27 @@ function renderNav() {
   $('logoText').textContent = S.brand.name;
   document.title = S.brand.name;
   const item = (v, icon, label, count, extra = '', lead = '') => {
-    const on = view.name === v.name && (v.gameId || '') === (view.gameId || '') || (v.name === 'game' && view.name === 'mod' && view.gameId === v.gameId);
+    const on = view.name === v.name && (v.gameId || '') === (view.gameId || '');
     return `<div class="nav-item${on ? ' active' : ''}" data-act="go" data-view='${esc(JSON.stringify(v))}'>${lead || ico(icon)}<span>${esc(label)}</span>${extra}${count != null ? `<span class="count">${count}</span>` : ''}</div>`;
   };
+  const inBrowse = ['browse', 'game', 'mod'].includes(view.name);
   let html = item({ name: 'home' }, 'home', T('Home'));
-  html += `<div class="side-head">${esc(T('Games'))}</div>`;
-  for (const g of S.games) {
-    const live = isActive(g.id) ? '<span class="dot live"></span>' : '';
-    html += item({ name: 'game', gameId: g.id }, null, g.name, g.status === 'available' ? modsOf(g.id).length : null, live, gicon(g, 18));
+  html += item({ name: 'browse' }, 'grid', T('Browse'), S.games.filter((g) => g.status === 'available').length).replace('class="nav-item"', inBrowse ? 'class="nav-item active"' : 'class="nav-item"');
+  html += item({ name: 'packs' }, 'layers', T('Modpacks'), S.packs.length || null);
+  const live = Object.values(S.sessions).filter((s) => !s.result);
+  for (const s of live) {
+    const g = gameOf(s.gameId);
+    if (g) html += item({ name: 'game', gameId: g.id }, null, T('{game} is running', { game: g.name }), null, '<span class="dot live"></span>', gicon(g, 16));
   }
-  html += `<div class="side-head">${esc(T('More'))}</div>`;
+  html += `<div class="side-head">${esc(T('Library'))}</div>`;
   html += item({ name: 'library' }, 'down', T('Downloads'), S.library.length || null);
   html += item({ name: 'sources' }, 'link', T('Sources'), S.sources.length);
   html += item({ name: 'settings' }, 'gear', T('Settings'));
   $('nav').innerHTML = html;
+  $('tbName').textContent = S.brand.name;
+  const titles = { home: T('Home'), browse: T('Browse'), packs: T('Modpacks'), library: T('Downloads'), sources: T('Sources'), settings: T('Settings') };
+  const g0 = view.gameId ? gameOf(view.gameId) : null;
+  $('tbTitle').textContent = view.name === 'mod' && modOf(view.modId) ? tx(modOf(view.modId).name) : g0 ? g0.name : titles[view.name] || '';
 
   const u = S.update;
   let line = `<span class="ver">v${esc(S.version)}</span> `;
@@ -125,8 +146,10 @@ function renderNav() {
 function renderTopbar() {
   const parts = [`<a data-act="go" data-view='{"name":"home"}'>${esc(T('Home'))}</a>`];
   const g = view.gameId ? gameOf(view.gameId) : null;
+  if (g || view.name === 'browse') parts.push(view.name === 'browse' ? `<span>${esc(T('Browse'))}</span>` : `<a data-act="go" data-view='{"name":"browse"}'>${esc(T('Browse'))}</a>`);
   if (g) parts.push(view.name === 'game' ? `<span>${esc(g.name)}</span>` : `<a data-act="go" data-view='${esc(JSON.stringify({ name: 'game', gameId: g.id }))}'>${esc(g.name)}</a>`);
   if (view.name === 'mod' && modOf(view.modId)) parts.push(`<span>${esc(tx(modOf(view.modId).name))}</span>`);
+  if (view.name === 'packs') parts.push(`<span>${esc(T('Modpacks'))}</span>`);
   if (view.name === 'library') parts.push(`<span>${esc(T('Downloads'))}</span>`);
   if (view.name === 'sources') parts.push(`<span>${esc(T('Sources'))}</span>`);
   if (view.name === 'settings') parts.push(`<span>${esc(T('Settings'))}</span>`);
@@ -196,10 +219,10 @@ function viewHome() {
   html += '</div>';
   const fresh = S.mods.filter((m) => m.isNew || m.isUpdated);
   if (fresh.length) {
-    html += `<div class="section"><div class="list"><div class="lhead">${esc(T('New in the catalog'))}</div>${fresh.map((m) => modRow(m, false)).join('')}</div></div>`;
+    html += `<div class="section"><div class="list"><div class="lhead">${ico('info', 13)}<span>${esc(T('New in the catalog'))}</span></div>${fresh.map((m) => modRow(m, false)).join('')}</div></div>`;
   }
   if (S.packs.length) {
-    html += `<div class="section"><div class="list"><div class="lhead">${esc(T('Your modpacks'))}</div>${S.packs.map(packRow).join('')}</div></div>`;
+    html += `<div class="section"><div class="list"><div class="lhead">${ico('layers', 13)}<span>${esc(T('Your modpacks'))}</span></div>${S.packs.map(packRow).join('')}</div></div>`;
   }
   return html + '</div>';
 }
@@ -209,9 +232,10 @@ function modRow(m, selectable) {
   const g = gameOf(m.game);
   const on = selectable && sel(m.game).has(m.id);
   const box = selectable ? `<div class="check${on ? ' on' : ''}" data-act="toggle" data-mod="${esc(m.id)}">${ico('check', 14)}</div>` : '';
-  return `<div class="lrow click" data-act="go" data-view='${esc(JSON.stringify({ name: 'mod', gameId: m.game, modId: m.id }))}'>${box}
+  const th = (m.images || [])[0] ? imgUrl(m, m.images[0]) : null;
+  return `<div class="lrow click" data-act="go" data-view='${esc(JSON.stringify({ name: 'mod', gameId: m.game, modId: m.id }))}'>${box}${th ? `<img class="thumb" src="${esc(th)}" alt="">` : `<span class="thumb ph">${gicon(g, 18)}</span>`}
     <div class="main"><div class="title">${esc(tx(m.name))} ${modChips(m)}</div><div class="sub">${selectable ? '' : `<span class="of-game">${gicon(g, 16)}${esc(g ? g.name : '')}</span> · `}${esc(tx(m.summary))}</div></div>
-    ${downloadChip(m)}</div>`;
+    ${downloadChip(m)}<button class="kebab" data-act="mod-menu" data-mod="${esc(m.id)}" aria-label="${esc(T('More'))}">${ico('dots', 16)}</button></div>`;
 }
 
 function packRow(p) {
@@ -287,7 +311,7 @@ function sessionPanel(gameId) {
       <div class="acts"><button class="btn small" data-act="dismiss-session" data-game="${esc(gameId)}">${esc(T('Close'))}</button></div></div></div>`;
   }
   const log = s.log && s.log.length ? `<div class="log" style="margin-top:14px">${esc(s.log.join('\n'))}</div>` : '';
-  return `${head}<div class="list"><div class="lhead">${esc(T('What the launcher does'))}</div><div class="steps">${steps}</div></div>${log}`;
+  return `${head}<div class="list"><div class="lhead">${ico('refresh', 13)}<span>${esc(T('What the launcher does'))}</span></div><div class="steps">${steps}</div></div>${log}`;
 }
 
 function viewGame() {
@@ -364,34 +388,35 @@ function viewMod() {
   }
   const KIND = { multiplayer: 'Multiplayer', privacy: 'Privacy', testing: 'State of testing', info: 'Good to know' };
   const notes = (m.notes || []).map((n) => `<div class="lrow top"><div class="main"><div class="note-kind">${esc(T(KIND[n.kind]))}</div><div>${esc(tx(n.text))}</div></div></div>`).join('');
-  const controls = (m.controls || []).map((c) => `<div class="lrow"><kbd>${esc(c.key)}</kbd><div class="main sub">${esc(tx(c.text))}</div></div>`).join('');
+  const controls = ((m.usage && m.usage.keys && m.usage.keys.length) ? m.usage.keys : m.controls || []).map((c) => `<div class="lrow"><kbd>${esc(c.key)}</kbd><div class="main sub">${esc(tx(c.text))}</div></div>`).join('');
   const third = (m.thirdParty || []).map((t) => `<div class="kv"><span class="k">${esc(t.license)}</span><span class="v">${esc(t.name)}</span></div>`).join('');
   const dl = S.downloads[m.id];
   let dlBtn;
   if (dl) dlBtn = `<button class="btn" disabled>${Math.round((dl.got / Math.max(1, dl.total)) * 100)} %</button>`;
   else if (m.download.state === 'ready') dlBtn = `<button class="btn danger" data-act="delete-package" data-mod="${esc(m.id)}">${esc(T('Remove download'))}</button>`;
   else dlBtn = `<button class="btn" data-act="download" data-mod="${esc(m.id)}">${ico('down', 14)} ${esc(m.download.state === 'update' ? T('Update') : T('Download'))} · ${esc(size(m.package.size))}</button>`;
-  const imgs = (m.images || []).map((rel) => {
-    const k = m.id + '|' + rel;
-    if (!(k in images)) { images[k] = null; api.modImage(m.id, rel).then((u) => { if (u && !u.error) { images[k] = u; render(); } }); }
-    return images[k] ? `<div class="shot"><img src="${esc(images[k])}" alt=""></div>` : '';
-  }).join('');
+  const urls = (m.images || []).map((rel) => imgUrl(m, rel)).filter(Boolean);
+  const imgs = urls.length ? `<div class="shot"><img src="${esc(urls[0])}" alt="" data-act="zoom" data-src="${esc(urls[0])}"></div>${urls.length > 1 ? `<div class="gallery">${urls.slice(1).map((u) => `<img src="${esc(u)}" alt="" data-act="zoom" data-src="${esc(u)}">`).join('')}</div>` : ''}` : '';
+  const usage = m.usage || {};
+  const howto = (usage.steps || []).length ? `<div class="list steps-list" style="margin-bottom:18px"><div class="lhead">${ico('play', 12)}<span>${esc(T('How to use it'))}</span></div>${usage.steps.map((st) => `<div class="lrow"><span class="num"></span><div class="main">${esc(tx(st))}</div></div>`).join('')}</div>` : '';
   const blocked = problems.length || isActive(m.game);
   const unofficial = m.source.official ? '' : `<div class="banner bad">${ico('warn', 18)}<div class="grow"><b>${esc(T('Unofficial source: {name}', { name: m.source.name }))}</b>
     <div class="muted">${esc(T('This mod does not come from the official catalog. Nobody has checked it. A mod is program code that runs inside the game with your rights. Only use it if you trust the people behind this source.'))}</div></div></div>`;
 
-  return `<div class="wrap">${unofficial}<div class="page-head"><div class="grow"><div class="title-row">${gicon(g, 52)}<div><div class="label"><span class="of-game">${esc(T('Mod for {game}', { game: g.name }))}</span> · ${esc(T('by {author}', { author: m.author }))}</div><h2>${esc(tx(m.name))}</h2></div></div>
+  const bd = urls[0] ? `<div class="bd" style="background-image:url('${esc(urls[0])}')"></div>` : '';
+  return `<div class="wrap page-backdrop">${bd}${unofficial}<div class="page-head"><div class="grow"><div class="title-row">${gicon(g, 52)}<div><div class="label"><span class="of-game">${esc(T('Mod for {game}', { game: g.name }))}</span> · ${esc(T('by {author}', { author: m.author }))}</div><h2>${esc(tx(m.name))}</h2></div></div>
       <div class="meta">${modChips(m)}${downloadChip(m)}</div></div>
       ${dlBtn}<button class="btn" data-act="pack-add" data-mod="${esc(m.id)}">${esc(T('Add to modpack'))}</button>
-      <button class="btn primary big" data-act="launch-one" data-mod="${esc(m.id)}" ${blocked ? 'disabled' : ''}>${ico('play', 14)} ${esc(T('Launch'))}</button></div>
+      <button class="btn primary big" data-act="launch-one" data-mod="${esc(m.id)}" ${blocked ? 'disabled' : ''}>${ico('play', 14)} ${esc(T('Launch'))}</button>
+      <button class="kebab" data-act="mod-menu" data-mod="${esc(m.id)}" aria-label="${esc(T('More'))}">${ico('dots', 18)}</button></div>
     ${problems.length ? `<div class="banner bad"><div class="grow">${problems.map((p) => `<div><b>${esc(problemText(p))}</b></div>`).join('')}</div></div>` : ''}
     <div class="cols"><div><p class="lead" style="margin:0 0 18px">${esc(tx(m.summary))}</p>${imgs}
       <div class="prose">${tx(m.description).split(/\n\n+/).map((p) => `<p>${esc(p)}</p>`).join('')}</div>
-      ${controls ? `<div class="list"><div class="lhead">${esc(T('Keys'))}</div>${controls}</div>` : ''}</div>
+      ${howto}${controls ? `<div class="list"><div class="lhead">${ico('key', 13)}<span>${esc(T('Keys'))}</span><span class="grow"></span><span>${esc(T('In game: {key} shows this', { key: S.settings.overlayHotkey || 'F10' }))}</span></div>${controls}</div>` : ''}</div>
     <div class="side">
-      <div class="list"><div class="lhead">${esc(T('You need'))}</div>${req}</div>
-      ${notes ? `<div class="list"><div class="lhead">${esc(T('You should know'))}</div>${notes}</div>` : ''}
-      <div class="list"><div class="lhead">${esc(T('Details'))}</div>
+      <div class="list"><div class="lhead">${ico('shield', 13)}<span>${esc(T('You need'))}</span></div>${req}</div>
+      ${notes ? `<div class="list"><div class="lhead">${ico('info', 13)}<span>${esc(T('You should know'))}</span></div>${notes}</div>` : ''}
+      <div class="list"><div class="lhead">${ico('box', 13)}<span>${esc(T('Details'))}</span></div>
         <div class="kv"><span class="k">${esc(T('Game'))}</span><span class="v of-game">${gicon(g, 16)}${esc(g.name)}</span></div>
         <div class="kv"><span class="k">${esc(T('Version'))}</span><span class="v">${esc(m.version)}${m.released ? ' · ' + esc(m.released) : ''}</span></div>
         <div class="kv"><span class="k">${esc(T('Source'))}</span><span class="v">${esc(m.source.official ? T('Official catalog') : m.source.name + ' (' + T('unofficial') + ')')}</span></div>
@@ -400,6 +425,89 @@ function viewMod() {
         <div class="kv"><span class="k">${esc(T('Kept data'))}</span><span class="v">${esc(m.kept.exists ? size(m.kept.bytes) + ' · ' + ago(m.kept.savedAt) : T('nothing yet'))}</span></div>
         ${third}</div>
     </div></div></div>`;
+}
+
+// ---- browse and modpacks ------------------------------------------------------
+function viewBrowse() {
+  const q = query.trim().toLowerCase();
+  const games = S.games.filter((g) => !q || g.name.toLowerCase().includes(q));
+  const hits = q ? S.mods.filter((m) => [tx(m.name), tx(m.summary), m.author, (gameOf(m.game) || {}).name].join(' ').toLowerCase().includes(q)) : [];
+  let html = `<div class="wrap"><div class="page-head"><div class="grow"><div class="label">${esc(T('Browse'))}</div><h2>${esc(T('All games'))}</h2></div>
+    <label class="search">${ico('search', 15)}<input id="browseQuery" placeholder="${esc(T('Search games and mods'))}" value="${esc(query)}"></label></div><div class="grid">`;
+  for (const g of games) {
+    const n = modsOf(g.id).length;
+    const off = g.status !== 'available';
+    html += `<div class="card game-card ${off ? 'off' : 'click'}" ${off ? '' : `data-act="go" data-view='${esc(JSON.stringify({ name: 'game', gameId: g.id }))}'`}>
+      <div class="ghead">${gicon(g, 44)}<div class="gname">${esc(g.name)}</div></div><div class="gtag">${esc(tx(g.tagline))}</div>
+      <div class="gfoot">${off ? '' : `<span>${esc(T(n === 1 ? '{n} mod' : '{n} mods', { n }))}</span>`}${sourceChip(g.source)}<span class="grow"></span>${gameStatus(g)}</div></div>`;
+  }
+  html += '</div>';
+  if (!games.length && !hits.length) html += `<div class="empty">${esc(T('Nothing found.'))}</div>`;
+  if (hits.length) html += `<div class="section"><div class="list"><div class="lhead">${ico('search', 13)}<span>${esc(T('Mods matching "{q}"', { q: query.trim() }))}</span></div>${hits.map((m) => modRow(m, false)).join('')}</div></div>`;
+  return html + '</div>';
+}
+
+function viewPacks() {
+  let html = `<div class="wrap"><div class="page-head"><div class="grow"><div class="label">${esc(T('Modpacks'))}</div><h2>${esc(T('Your modpacks'))}</h2>
+    <p class="lead">${esc(T('A modpack is a named set of mods you launch with one click and can share with friends as a code.'))}</p></div>
+    <button class="btn" data-act="pack-import">${ico('copy', 14)} ${esc(T('Import code'))}</button></div>`;
+  for (const g of S.games.filter((x) => x.status === 'available')) {
+    const list = packsOf(g.id);
+    html += `<div class="section"><div class="list"><div class="lhead">${gicon(g, 14)}<span>${esc(g.name)}</span><span class="grow"></span>
+      <button class="hbtn" data-act="pack-new" data-game="${esc(g.id)}">${esc(T('New pack'))}</button></div>
+      ${list.length ? list.map(packRow).join('') : `<div class="empty">${esc(T('No modpack for this game yet.'))}</div>`}</div></div>`;
+  }
+  return html + '</div>';
+}
+
+// ---- images, menus, window -------------------------------------------------------
+function imgUrl(m, rel) {
+  const k = m.id + '|' + rel;
+  if (!(k in images)) { images[k] = null; api.modImage(m.id, rel).then((u) => { if (u && !u.error) { images[k] = u; render(); } }); }
+  return images[k];
+}
+
+let menuItems = [];
+function openMenu(anchor, items) {
+  menuItems = items;
+  const el = $('menu');
+  el.innerHTML = items.map((it, i) => it === '-' ? '<div class="msep"></div>' : it.label && !it.act ? `<div class="mlabel">${esc(it.label)}</div>`
+    : `<div class="mi${it.danger ? ' danger' : ''}" tabindex="0" data-mi="${i}">${ico(it.icon || 'info', 14)}<span>${esc(it.text)}</span></div>`).join('');
+  el.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+  el.style.top = (r.bottom + h + 6 > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+  const first = el.querySelector('.mi');
+  if (first) first.focus();
+}
+function closeMenu() { $('menu').hidden = true; menuItems = []; }
+
+function modMenu(m) {
+  const items = [{ label: tx(m.name) }];
+  if (m.download.state === 'ready') items.push({ icon: 'down', text: T('Remove download'), act: () => ACTIONS['delete-package']({ mod: m.id }), danger: true });
+  else items.push({ icon: 'down', text: m.download.state === 'update' ? T('Update') : T('Download'), act: () => download(m.id) });
+  items.push({ icon: 'layers', text: T('Add to modpack'), act: () => openModal({ type: 'pack-pick', gameId: m.game, modId: m.id }) });
+  items.push({ icon: 'play', text: T('Launch only this mod'), act: () => launch(m.game, [m.id]) });
+  items.push('-');
+  items.push({ icon: 'folder', text: T('Open game folder'), act: () => api.openGame(m.game) });
+  items.push({ icon: 'log', text: T('Show last loader log'), act: () => ACTIONS['open-log']({ game: m.game }) });
+  items.push({ icon: 'copy', text: T('Copy mod id'), act: () => api.copyText(m.id).then(() => toast(T('Copied'))) });
+  return items;
+}
+
+function appMenu() {
+  return [
+    { label: S.brand.name + ' ' + S.version },
+    { icon: 'refresh', text: T('Check for new mods'), act: () => ACTIONS.refresh() },
+    { icon: 'grid', text: T('Browse'), act: () => go({ name: 'browse' }) },
+    { icon: 'layers', text: T('Modpacks'), act: () => go({ name: 'packs' }) },
+    { icon: 'down', text: T('Downloads'), act: () => go({ name: 'library' }) },
+    { icon: 'link', text: T('Sources'), act: () => go({ name: 'sources' }) },
+    '-',
+    { icon: 'folder', text: T('Open launcher data folder'), act: () => api.openData() },
+    { icon: 'gear', text: T('Settings'), act: () => go({ name: 'settings' }) },
+  ];
 }
 
 // ---- library, sources, settings ------------------------------------------------
@@ -441,7 +549,12 @@ function viewSettings() {
         <select class="input" style="width:220px" data-change="lang">${opt('', st.lang, T('Like the system'))}${opt('de', st.lang, 'Deutsch')}${opt('en', st.lang, 'English')}</select></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Theme'))}</div></div>
         <select class="input" style="width:220px" data-change="theme">${opt('dark', st.theme, T('Dark'))}${opt('light', st.theme, T('Light'))}</select></div></div>
-    <div class="section"><div class="list"><div class="lhead">${esc(T('Finding things'))}</div>
+    <div class="section"><div class="list"><div class="lhead">${ico('screen', 13)}<span>${esc(T('In-game overlay'))}</span></div>
+      <div class="lrow"><div class="main"><div class="title">${esc(T('Show the overlay in the game'))}</div><div class="sub">${esc(T('A small panel inside the game that shows which mods loaded and how to use them. Installed with every launch and removed afterwards.'))}</div></div>
+        <select class="input" style="width:160px" data-change="overlay">${opt('true', String(st.overlay !== false), T('On'))}${opt('false', String(st.overlay !== false), T('Off'))}</select></div>
+      <div class="lrow"><div class="main"><div class="title">${esc(T('Key'))}</div><div class="sub">${esc(T('Pick a key the mods of your game do not use.'))}</div></div>
+        <select class="input" style="width:160px" data-change="overlayHotkey">${['F6', 'F8', 'F10', 'F11', 'F12'].map((k) => opt(k, st.overlayHotkey || 'F10', k)).join('')}</select></div></div></div>
+    <div class="section"><div class="list"><div class="lhead">${ico('search', 13)}<span>${esc(T('Finding things'))}</span></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Minecraft folder'))}</div><div class="sub">${esc(st.minecraftPath || T('Only needed if your Minecraft Java is not found by itself.'))}</div></div>
         ${st.minecraftPath ? `<button class="btn small" data-act="mc-clear">${esc(T('Reset'))}</button>` : ''}<button class="btn small" data-act="mc-pick">${esc(T('Choose folder'))}</button></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Launcher data'))}</div><div class="sub">${esc(T('Saved mod data, downloads and logs.'))}</div></div>
@@ -519,12 +632,15 @@ function renderModal() {
       ${info}${modal.error ? `<div class="err">${esc(modal.error)}</div>` : ''}</div>
       <div class="mfoot"><button class="btn" data-act="modal-close">${esc(T('Cancel'))}</button>
       ${r && r.gameKnown ? `<button class="btn primary" data-act="pack-import-save">${esc(T('Save pack'))}</button>` : `<button class="btn primary" data-act="pack-import-read">${esc(T('Read code'))}</button>`}</div>`;
+  } else if (modal.type === 'image') {
+    h = `<div class="mbody" style="padding:8px"><img src="${esc(modal.src)}" alt="" data-act="modal-close" style="cursor:zoom-out"></div>`;
   } else if (modal.type === 'pack-pick') {
     const list = packsOf(modal.gameId).map((p) => `<div class="lrow click" data-act="pack-pick-go" data-pack="${esc(p.id)}"><div class="main"><div class="title">${esc(p.name)}</div></div></div>`).join('');
     h = `<div class="mhead">${esc(T('Add to modpack'))}</div><div class="mbody"><div class="picklist">${list}<div class="lrow click" data-act="pack-pick-go" data-pack=""><div class="main"><div class="title">${esc(T('New pack'))}</div></div></div></div></div>
       <div class="mfoot"><button class="btn" data-act="modal-close">${esc(T('Cancel'))}</button></div>`;
   }
   $('modal').innerHTML = h;
+  $('modal').classList.toggle('lightbox', modal.type === 'image');
 }
 
 // ---- render --------------------------------------------------------------------
@@ -537,11 +653,13 @@ function render() {
   renderTopbar();
   const v = $('view');
   const top = v.scrollTop;
-  const html = { home: viewHome, game: viewGame, mod: viewMod, library: viewLibrary, sources: viewSources, settings: viewSettings }[view.name]();
+  const html = { home: viewHome, browse: viewBrowse, packs: viewPacks, game: viewGame, mod: viewMod, library: viewLibrary, sources: viewSources, settings: viewSettings }[view.name]();
   v.innerHTML = html;
   v.scrollTop = render.last === JSON.stringify(view) ? top : 0;
   render.last = JSON.stringify(view);
   renderLaunchBar();
+  const qi = $('browseQuery');
+  if (qi && render.focusQuery) { qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
   // everything clickable is reachable with the keyboard
   for (const el of document.querySelectorAll('[data-act]:not(button):not([tabindex])')) el.tabIndex = 0;
 }
@@ -605,6 +723,12 @@ async function checkPack() {
 }
 
 const ACTIONS = {
+  'win-min': () => api.winMinimize(),
+  'win-max': () => api.winMaximize(),
+  'win-close': () => api.winClose(),
+  'app-menu': (_d, el) => openMenu(el, appMenu()),
+  'mod-menu': (d, el) => { const m = modOf(d.mod); if (m) openMenu(el, modMenu(m)); },
+  zoom: (d) => openModal({ type: 'image', src: d.src }),
   go: (d) => go(JSON.parse(d.view)),
   tab: (d) => { view = { ...view, tab: d.tab }; render(); },
   refresh: async () => { toast(T('Checking the catalogs')); S = await api.refreshCatalog(); render(); },
@@ -638,7 +762,7 @@ const ACTIONS = {
   'source-remove': (d) => openModal({ type: 'source-remove', id: d.source, name: S.sources.find((s) => s.id === d.source).name }),
   'source-remove-go': async () => { await api.removeSource(modal.id); closeModal(); reload(); },
 
-  'pack-new': () => { openModal({ type: 'pack', pack: { name: '', gameId: view.gameId, mods: [] } }); },
+  'pack-new': (d) => { openModal({ type: 'pack', pack: { name: '', gameId: d.game || view.gameId, mods: [] } }); },
   'pack-from-selection': () => { openModal({ type: 'pack', pack: { name: '', gameId: view.gameId, mods: [...sel(view.gameId)].map((id) => ({ id })) } }); checkPack(); },
   'pack-edit': (d) => { const p = S.packs.find((x) => x.id === d.pack); openModal({ type: 'pack', pack: JSON.parse(JSON.stringify(p)) }); checkPack(); },
   'pack-toggle': (d) => {
@@ -666,7 +790,7 @@ const ACTIONS = {
     openModal({ type: 'pack', pack: { name: p.name, gameId: p.gameId, mods: p.mods } });
     checkPack();
   },
-  'pack-add': (d) => openModal({ type: 'pack-pick', gameId: view.gameId, modId: d.mod }),
+  'pack-add': (d) => openModal({ type: 'pack-pick', gameId: (modOf(d.mod) || {}).game || view.gameId, modId: d.mod }),
   'pack-pick-go': (d) => {
     const existing = S.packs.find((x) => x.id === d.pack);
     const pack = existing ? JSON.parse(JSON.stringify(existing)) : { name: '', gameId: modal.gameId, mods: [] };
@@ -676,20 +800,33 @@ const ACTIONS = {
 };
 
 document.addEventListener('click', (e) => {
+  const mi = e.target.closest('[data-mi]');
+  if (mi) { const it = menuItems[Number(mi.dataset.mi)]; closeMenu(); if (it && it.act) it.act(); return; }
+  if (!$('menu').hidden) closeMenu();
   const el = e.target.closest('[data-act]');
   if (!el) return;
   e.stopPropagation();
   const fn = ACTIONS[el.dataset.act];
-  if (fn) fn(el.dataset);
+  if (fn) fn(el.dataset, el);
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'browseQuery') return;
+  query = e.target.value;
+  render.focusQuery = true;
+  render();
+  render.focusQuery = false;
 });
 document.addEventListener('change', async (e) => {
   const key = e.target.dataset && e.target.dataset.change;
   if (!key) return;
-  S = await api.saveSettings({ [key]: e.target.value || null });
+  const v = e.target.value;
+  S = await api.saveSettings({ [key]: key === 'overlay' ? v === 'true' : (v || null) });
   render();
 });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('menu').hidden) { closeMenu(); return; }
   if (e.key === 'Escape' && modal) ACTIONS['modal-close']();
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-mi]')) { e.preventDefault(); e.target.click(); return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-act]:not(button)')) { e.preventDefault(); e.target.click(); }
 });
 
@@ -697,6 +834,8 @@ api.onChanged(reload);
 api.onSession((s) => { if (S) { S.sessions = s; render(); } });
 api.onDownload((d) => { if (S) { S.downloads = d; render(); } });
 api.onUpdate((u) => { if (S) { S.update = u; renderNav(); } });
+api.onWindow((w) => { const b = $('tbMax'); if (b) b.innerHTML = w.maximized ? '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="2.5" width="7" height="7"/><path d="M2.5 2.5V0.5h7v7h-2"/></svg>' : '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>'; });
+window.__menu = (sel, which) => { const el = document.querySelector(sel); if (el) ACTIONS[which](el.dataset, el); };
 
 window.__go = (v) => { view = v; render(); };   // used by the screenshot script
 window.__modal = openModal;

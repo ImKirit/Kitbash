@@ -115,7 +115,7 @@ function buildState() {
   return {
     brand: { name: brand.productName, homepage: brand.homepage },
     version: pkg.version, dev: DEV, lang: lang(),
-    settings: { lang: settings.get('lang'), theme: settings.get('theme'), minecraftPath: settings.get('minecraftPath'), selection: settings.get('selection') },
+    settings: { lang: settings.get('lang'), theme: settings.get('theme'), minecraftPath: settings.get('minecraftPath'), selection: settings.get('selection'), overlay: settings.get('overlay') !== false, overlayHotkey: settings.get('overlayHotkey') || 'F10' },
     steamFound: !!steam, games, mods, loaders: merged.loaders, sources: merged.sources,
     packs: packs.all(), library: sources.library(), cacheBytes: sources.cacheBytes(),
     sessions, downloads, update, imports,
@@ -124,7 +124,10 @@ function buildState() {
 
 // ---- sessions ---------------------------------------------------------------
 function sessionCtx() {
-  return { engine, sources, steam, isRunning: proc.isRunning, minecraftPath: settings.get('minecraftPath') };
+  return {
+    engine, sources, steam, isRunning: proc.isRunning, minecraftPath: settings.get('minecraftPath'),
+    overlay: { enabled: settings.get('overlay') !== false, hotkey: settings.get('overlayHotkey') || 'F10', lang: lang() },
+  };
 }
 
 function trackSession(gameId, modIds, runner) {
@@ -183,7 +186,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 1020, minHeight: 680,
     backgroundColor: settings.get('theme') === 'light' ? '#f4f4f1' : '#0a0a0b',
-    icon: ICON, show: false, autoHideMenuBar: true, title: brand.productName,
+    icon: ICON, show: false, autoHideMenuBar: true, title: brand.productName, frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true,
@@ -192,6 +195,9 @@ function createWindow() {
   win.removeMenu();
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.once('ready-to-show', () => win.show());
+  const sendWin = () => send('window', { maximized: win.isMaximized() });
+  win.on('maximize', sendWin);
+  win.on('unmaximize', sendWin);
   // --smoke <file>: start for real, save a picture of the window, quit.
   const smoke = argValue('--smoke');
   if (smoke) {
@@ -287,6 +293,9 @@ function registerIpc() {
   });
 
   handle('state:get', () => buildState());
+  handle('win:minimize', () => { if (win) win.minimize(); return true; });
+  handle('win:maximize', () => { if (win) { if (win.isMaximized()) win.unmaximize(); else win.maximize(); } return true; });
+  handle('win:close', () => { if (win) win.close(); return true; });
   handle('catalog:refresh', async () => { await refreshCatalogs(); return buildState(); });
 
   handle('mod:check', async (gameId, modIds) => {
@@ -381,7 +390,8 @@ function registerIpc() {
 
   handle('settings:save', async (patch) => {
     const allowed = {};
-    for (const k of ['lang', 'theme', 'minecraftPath']) if (patch && k in patch) allowed[k] = patch[k];
+    for (const k of ['lang', 'theme', 'minecraftPath', 'overlay', 'overlayHotkey']) if (patch && k in patch) allowed[k] = patch[k];
+    if ('overlayHotkey' in allowed && !/^F([1-9]|1[0-2])$/.test(String(allowed.overlayHotkey))) delete allowed.overlayHotkey;
     settings.patch(allowed);
     updateTray();
     return buildState();
@@ -418,6 +428,8 @@ function registerIpc() {
 }
 
 // ---- start ------------------------------------------------------------------
+// A separate data folder (tests, a second profile) also gets its own Electron profile and lock.
+if (argValue('--data')) app.setPath('userData', path.join(path.resolve(argValue('--data')), 'electron'));
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', showWindow);

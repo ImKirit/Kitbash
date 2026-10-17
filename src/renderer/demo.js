@@ -16,7 +16,7 @@ if (!window.launcher) {
 
   const state = {
     brand: { name: 'Launcher', homepage: '' }, version: '0.1.0', dev: false, lang: 'en',
-    settings: { lang: null, theme: 'dark', minecraftPath: '', selection: {} },
+    settings: { lang: null, theme: 'dark', minecraftPath: '', selection: {}, overlay: true, overlayHotkey: 'F10' },
     steamFound: true,
     games: [
       game('repo', 'R.E.P.O.', L('Co-op horror with physics.', 'Koop-Horror mit Physik.')),
@@ -57,6 +57,7 @@ if (!window.launcher) {
     importData: () => ok({ ok: true }), dismissImport: () => ok(true),
     openData: () => ok(), openGame: () => ok(), openLog: () => ok(), openExternal: () => ok(), pickFolder: () => ok(null),
     copyText: () => ok(true), readClipboard: () => ok(''), installUpdate: () => ok(false),
+    winMinimize: () => ok(true), winMaximize: () => ok(true), winClose: () => ok(true), onWindow: () => { },
     onChanged: (cb) => listeners.changed.push(cb), onSession: (cb) => listeners.session.push(cb),
     onDownload: (cb) => listeners.download.push(cb), onUpdate: (cb) => listeners.update.push(cb),
   };

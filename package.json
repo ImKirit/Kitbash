@@ -1,6 +1,6 @@
 {
   "name": "kitbash",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod launcher: pick a game, pick mods, press Launch. The game folder is put back when you close the game.",
   "author": "ImKirit <main@kirit.xyz>",
   "license": "MIT",

@@ -19,7 +19,7 @@ const path = require('path');
 const { readZip } = require('./zip');
 const { loaderType, underAny } = require('./loaders');
 const {
-  sha256, inside, topLevel, readJson, writeJsonAtomic, exists,
+  sha256, inside, topLevel, readJson, writeJsonAtomic, exists, cleanRel: cleanRelPath,
   copyRecursive, removeTree, compareVersions, dirSize,
 } = require('./util');
 
@@ -186,7 +186,17 @@ class Engine {
       }
       modArchives.push({ mod, files: out });
     }
-    return { loaderZip, modArchives, type };
+    // Files the launcher itself adds (the in-game overlay). Same rules as mod files.
+    const extra = [];
+    for (const f of files.extra || []) {
+      const rel = cleanRelPath(f.rel);
+      const key = rel.toLowerCase();
+      if (!underAny(rel, type.installRoots)) throw new EngineError('package-layout', `Launcher file outside the mod folders: ${rel}`);
+      if (taken.has(key)) throw new EngineError('file-collision', `${taken.get(key)} installs a file the launcher needs: ${rel}`);
+      taken.set(key, 'launcher');
+      extra.push({ rel, data: Buffer.isBuffer(f.data) ? f.data : Buffer.from(f.data) });
+    }
+    return { loaderZip, modArchives, extra, type };
   }
 
   // ---- prepare the game folder ---------------------------------------------
@@ -197,7 +207,7 @@ class Engine {
     const problems = await this.preflight(plan);
     if (problems.length) throw new EngineError(problems[0].code, problems[0].message, { problems });
 
-    const { loaderZip, modArchives, type } = this._loadArchives(plan, files);
+    const { loaderZip, modArchives, extra, type } = this._loadArchives(plan, files);
 
     const claimNames = [...type.topLevel, ...type.alsoAside];
     const journal = {
@@ -254,6 +264,12 @@ class Engine {
         this.log(`installed mod: ${mod.id} ${mod.version}`);
         this.hook('mod:' + mod.id);
       }
+      for (const f of extra) {
+        const target = inside(journal.gameDir, f.rel);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, f.data);
+      }
+      if (extra.length) { this.log(`installed launcher files: ${extra.length}`); this.hook('extra'); }
       this._setPhase(journal, 'installed');
 
       for (const m of journal.mods) {

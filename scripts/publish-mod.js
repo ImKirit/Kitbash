@@ -113,6 +113,7 @@ function publish(opts) {
     requirements: spec.requirements || [],
     notes: spec.notes || [],
     controls: spec.controls || [],
+    usage: spec.usage,
     conflicts: spec.conflicts || [],
     thirdParty: spec.thirdParty || [],
     persist: spec.persist || [],

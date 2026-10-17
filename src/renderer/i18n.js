@@ -81,7 +81,17 @@
     'Unofficial source: {name}': 'Inoffizielle Quelle: {name}',
     'This mod does not come from the official catalog. Nobody has checked it. A mod is program code that runs inside the game with your rights. Only use it if you trust the people behind this source.':
       'Diese Mod kommt nicht aus dem offiziellen Katalog. Niemand hat sie geprüft. Eine Mod ist Programmcode, der im Spiel mit deinen Rechten läuft. Benutz sie nur, wenn du den Leuten hinter dieser Quelle vertraust.',
-    'by {author}': 'von {author}', 'Mod for {game}': 'Mod für {game}', 'Keys': 'Tasten', 'You need': 'Das brauchst du', 'You should know': 'Das solltest du wissen', 'Details': 'Details',
+    'by {author}': 'von {author}',
+    'Browse': 'Durchsuchen', 'All games': 'Alle Spiele', 'Search games and mods': 'Spiele und Mods suchen', 'Nothing found.': 'Nichts gefunden.',
+    'Mods matching "{q}"': 'Mods zu "{q}"', 'Library': 'Bibliothek', '{game} is running': '{game} läuft',
+    'No modpack for this game yet.': 'Für dieses Spiel gibt es noch kein Modpack.',
+    'Launch only this mod': 'Nur diese Mod starten', 'Open game folder': 'Spielordner öffnen', 'Show last loader log': 'Letztes Loader-Log anzeigen',
+    'Copy mod id': 'Mod-ID kopieren', 'Copied': 'Kopiert', 'Open launcher data folder': 'Datenordner des Launchers öffnen',
+    'How to use it': 'So benutzt du sie', 'In game: {key} shows this': 'Im Spiel zeigt {key} das hier',
+    'In-game overlay': 'Ingame-Overlay', 'Show the overlay in the game': 'Overlay im Spiel anzeigen',
+    'A small panel inside the game that shows which mods loaded and how to use them. Installed with every launch and removed afterwards.':
+      'Ein kleines Fenster im Spiel, das zeigt, welche Mods geladen sind und wie man sie benutzt. Wird bei jedem Start mit installiert und danach wieder entfernt.',
+    'On': 'An', 'Off': 'Aus', 'Key': 'Taste', 'Pick a key the mods of your game do not use.': 'Wähl eine Taste, die die Mods deines Spiels nicht benutzen.', 'Mod for {game}': 'Mod für {game}', 'Keys': 'Tasten', 'You need': 'Das brauchst du', 'You should know': 'Das solltest du wissen', 'Details': 'Details',
     'Version': 'Version', 'Source': 'Quelle', 'Official catalog': 'Offizieller Katalog', 'Mod loader': 'Mod-Loader', 'Package': 'Paket', 'Kept data': 'Gesicherte Daten', 'nothing yet': 'noch nichts',
 
     'What is on this PC': 'Was auf diesem PC liegt',

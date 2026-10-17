@@ -7,6 +7,15 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-theme="dark">
+  <header id="titlebar">
+    <button class="tb-brand" id="tbBrand" data-act="app-menu" aria-label="Menu"><img src="logo.png" alt=""><span id="tbName"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <div class="tb-title" id="tbTitle"></div>
+    <div class="tb-btns">
+      <button class="tb-btn" data-act="win-min" aria-label="Minimize"><svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1"><path d="M0 5.5h10"/></svg></button>
+      <button class="tb-btn" data-act="win-max" aria-label="Maximize" id="tbMax"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg></button>
+      <button class="tb-btn close" data-act="win-close" aria-label="Close"><svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9"/></svg></button>
+    </div>
+  </header>
   <div id="app">
     <aside id="sidebar">
       <div class="logo">
@@ -25,6 +34,7 @@
   </div>
   <div id="modalBackdrop" hidden><div id="modal" role="dialog"></div></div>
   <div id="toast" hidden></div>
+  <div id="menu" hidden role="menu"></div>
   <script src="i18n.js"></script>
   <script src="demo.js"></script>
   <script src="app.js"></script>

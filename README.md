@@ -9,7 +9,7 @@
 A mod launcher for Windows. It puts the mod loader and the mods into the game folder,
 starts the game through Steam, and when you close the game the folder is exactly as it
 was before. Settings and saved data of every mod stay in the launcher and come back
-on the next launch.
+on the next launch. In the game, one key shows which mods loaded and how to use them.
 
 [![Release](https://img.shields.io/github/v/release/ImKirit/Kitbash?color=15151a&label=download)](https://github.com/ImKirit/Kitbash/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-15151a)](LICENSE)
@@ -35,10 +35,10 @@ between, the next start finishes the clean-up from a journal.
 ## Getting started
 
 1. **Install** the [latest release](https://github.com/ImKirit/Kitbash/releases/latest) and
-   start it. The games of the catalog show up as cards, with a note whether Steam has them
-   installed on this PC.
+   start it. `Browse` in the sidebar shows every game of the catalog with its own icon, and
+   whether Steam has it installed on this PC. The search finds games and mods.
 
-   <img src="docs/home.png" width="620" alt="Home view with game cards">
+   <img src="docs/browse.png" width="620" alt="Browse view with all games">
 
 2. **Open a game and tick the mods you want.** The bar at the bottom shows what is still
    to download and tells you if something is missing or two mods do not go together.
@@ -57,12 +57,15 @@ between, the next start finishes the clean-up from a journal.
 
    <img src="docs/session-running.png" width="620" alt="Running session with the steps the launcher takes">
 
-5. **Close the game.** Mod data is kept, everything else is removed and your own files are
+5. **Press `F10` in the game** to see which mods loaded and how each one is used. Click a
+   mod for its keys and steps.
+
+6. **Close the game.** Mod data is kept, everything else is removed and your own files are
    back in place.
 
    <img src="docs/session-done.png" width="620" alt="Finished session">
 
-6. **Optional:** save your selection as a modpack and send the code to your friends, so
+7. **Optional:** save your selection as a modpack and send the code to your friends, so
    everyone launches the same set with one click.
 
 ## Features
@@ -79,6 +82,16 @@ between, the next start finishes the clean-up from a journal.
   launch, optional ones are shown as such.
 - **Refuses what it should not touch.** Games with anti-cheat, a game that is already
   running, an IL2CPP build for a Mono loader.
+
+### In the game
+
+- **Overlay on `F10`.** A small BepInEx plugin that the launcher installs with every launch and
+  removes afterwards. It lists the mods of the session, whether BepInEx loaded each one and
+  which errors they logged. Clicking a mod shows its description, its keys and the steps to use
+  it. It is drawn inside the game, so it also works in exclusive fullscreen. The key can be
+  changed or the overlay switched off in the settings.
+- **How to use it, also in the launcher.** Every mod page shows the same keys and steps, plus
+  real screenshots from the game.
 
 ### Keep your things
 
@@ -103,15 +116,19 @@ between, the next start finishes the clean-up from a journal.
   are marked `Unofficial` wherever they appear, and you confirm a plain warning when adding the
   source and again before its first download.
 - **Game icons from your own install.** Each game shows the icon of its installed exe, read on your PC and cached. Nothing is bundled.
-- **German and English**, dark theme by default, light theme in the settings.
+- **Black and silver**, own title bar, German and English. The light theme stays in the settings.
+- **Menus where they help.** Every mod row and mod page has a menu (download, add to a modpack,
+  launch alone, game folder, loader log), and the name in the title bar opens the app menu.
 - **Updates itself** from GitHub releases: checked on start and every four hours, downloaded in
   the background, installed when you quit.
 
 ## Screens
 
-| Mod page | Modpacks |
+| Mod page | How to use a mod |
 |---|---|
-| <img src="docs/mod.png" width="420" alt="Mod page"> | <img src="docs/modpack-edit.png" width="420" alt="Editing a modpack"> |
+| <img src="docs/mod.png" width="420" alt="Mod page"> | <img src="docs/mod-requirements.png" width="420" alt="Steps and keys of a mod"> |
+| **Mods of a game, with a menu** | **Modpacks** |
+| <img src="docs/mod-menu.png" width="420" alt="Mod list with the row menu open"> | <img src="docs/packs.png" width="420" alt="All modpacks"> |
 | **Downloads** | **Sources** |
 | <img src="docs/downloads.png" width="420" alt="Downloaded packages"> | <img src="docs/sources.png" width="420" alt="Catalog sources"> |
 | **Warning for unofficial sources** | **Light theme, German** |
@@ -173,6 +190,7 @@ npm run dev            # run against a catalog in ../Kitbash-Mods
 npm test               # engine, sources and modpack tests (node:test)
 npm run screenshots    # render every screen into docs/
 npm run icon           # redraw build/icon.png and icon.ico
+node scripts/build-overlay.js --refs <folder>   # rebuild the in-game overlay (needs the .NET 8 SDK)
 npm run dist           # build the Windows installer into dist/
 npm run cli -- list    # the engine without the window: list, check, launch, import, recover
 npm run publish-mod -- <modDir> --files <folder>   # add a mod to a local catalog copy
@@ -183,6 +201,7 @@ Plain Electron without a build step and with one runtime dependency (`electron-u
 Electron and is what the tests exercise against fake game folders. `src/renderer` is one page
 of plain HTML, CSS and JavaScript, and `demo.js` stands in for the preload API when the
 screenshots are taken. Product name, app id and repository names live in `src/brand.js`.
+`overlay/` is the C# source of the in-game overlay, its built DLL ships in `src/assets/`.
 
 The catalog format is documented in the
 [Kitbash-Mods](https://github.com/ImKirit/Kitbash-Mods) repository.

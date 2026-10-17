@@ -171,6 +171,23 @@ function checkMod(m, i, ctx, errors) {
       else checkText(c.text, `${w}.controls[${k}].text`, errors, 200);
     });
   }
+  if (m.usage !== undefined) {
+    if (!isObj(m.usage)) errors.push(`${w}.usage: must be an object with keys and steps`);
+    else {
+      if (m.usage.keys !== undefined) {
+        if (!Array.isArray(m.usage.keys)) errors.push(`${w}.usage.keys: must be a list`);
+        else m.usage.keys.forEach((k, j) => {
+          if (!isObj(k) || !isStr(k.key, 40)) errors.push(`${w}.usage.keys[${j}].key: missing`);
+          else checkText(k.text, `${w}.usage.keys[${j}].text`, errors, 300);
+        });
+      }
+      if (m.usage.steps !== undefined) {
+        if (!Array.isArray(m.usage.steps) || m.usage.steps.length > 20) errors.push(`${w}.usage.steps: must be a list of at most 20 steps`);
+        else m.usage.steps.forEach((st, j) => checkText(st, `${w}.usage.steps[${j}]`, errors, 400));
+      }
+      for (const k of Object.keys(m.usage)) if (k !== 'keys' && k !== 'steps') errors.push(`${w}.usage: unknown field "${k}"`);
+    }
+  }
   if (m.images !== undefined) {
     if (!Array.isArray(m.images)) errors.push(`${w}.images: must be a list`);
     else m.images.forEach((img, k) => {

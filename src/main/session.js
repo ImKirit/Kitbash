@@ -7,6 +7,7 @@ const { launchGame, waitForExit } = require('./launch');
 const { checkRequirements } = require('./requirements');
 const steamLib = require('./steam');
 const { sleep: realSleep } = require('./util');
+const overlay = require('./overlay');
 
 // Turns ids into the objects the engine works with.
 // Returns { game, gameDir, loader, mods, app } or throws EngineError.
@@ -77,6 +78,9 @@ async function runSession(ctx, req, emit = () => { }) {
     const progress = (what) => (got, total) => emit({ stage: 'downloading', what, got, total });
     const files = { loaderZip: await ctx.sources.loaderFile(plan.loader, progress(plan.loader.name)), modZips: {} };
     for (const mod of plan.mods) files.modZips[mod.id] = await ctx.sources.ensurePackage(mod, progress(mod.id));
+    if (ctx.overlay && ctx.overlay.enabled !== false && overlay.available()) {
+      files.extra = overlay.overlayFiles(plan.mods, ctx.overlay);
+    }
 
     out.stage = 'preparing';
     emit({ stage: 'preparing' });

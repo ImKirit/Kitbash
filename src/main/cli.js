@@ -30,7 +30,7 @@ function defaultDataDir() {
 function parse(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--catalog' || argv[i] === '--data') out[argv[i].slice(2)] = argv[++i];
+    if (argv[i] === '--catalog' || argv[i] === '--data' || argv[i] === '--overlay-selftest' || argv[i] === '--lang') out[argv[i].slice(2).replace('overlay-selftest', 'selftest')] = argv[++i];
     else out._.push(argv[i]);
   }
   return out;
@@ -47,7 +47,10 @@ async function main() {
   const engine = new Engine({ dataDir, isRunning: proc.isRunning, launcherVersion: pkg.version, log: say });
   const sources = new Sources({ dataDir, officialUrl: args.catalog || settings.get('catalogSource') || undefined, list: settings.get('sources') });
   const steam = steamLib.findSteam();
-  const ctx = { engine, sources, steam, isRunning: proc.isRunning, minecraftPath: settings.get('minecraftPath') };
+  const ctx = {
+    engine, sources, steam, isRunning: proc.isRunning, minecraftPath: settings.get('minecraftPath'),
+    overlay: { enabled: settings.get('overlay') !== false, hotkey: settings.get('overlayHotkey'), lang: args.lang || settings.get('lang') || 'en', selfTest: args.selftest ? { screenshot: require('path').resolve(args.selftest), delaySeconds: 20 } : null },
+  };
 
   if (cmd === 'recover') {
     const pending = engine.pendingJournals();

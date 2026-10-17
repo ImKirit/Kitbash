@@ -42,6 +42,9 @@ app.whenReady().then(async () => {
     if (!png) { const t = path.join(iconDir, g.id + '.ico'); fs.writeFileSync(t, found.ico); const img = nativeImage.createFromPath(t); if (!img.isEmpty()) png = img.toPNG(); }
     if (png) { const f = path.join(iconDir, g.id + '.png'); fs.writeFileSync(f, png); icons[g.id] = pathToFileURL(f).href; console.log('icon', g.id, found.size + 'px'); }
   }
+  // --icons <folder>: icons cached by an earlier real run (<game>-*.png), for games not installed right now
+  const iconArg = arg('--icons', null);
+  if (iconArg) for (const n of fs.readdirSync(iconArg)) { const id = n.split('-')[0]; if (!icons[id] && n.endsWith('.png')) { icons[id] = pathToFileURL(path.join(iconArg, n)).href; console.log('icon from cache', id); } }
 
   const win = new BrowserWindow({ width: 1280, height: 820, show: false, backgroundColor: '#0a0a0b', webPreferences: { offscreen: true } });
   let last = null;
@@ -70,6 +73,7 @@ app.whenReady().then(async () => {
   // ---- stage the sample data ------------------------------------------------
   await js(`(() => {
     const d = window.__demo, s = d.state;
+    s.version = "0.2.0";
     s.brand.name = ${JSON.stringify(brand.productName)};
     s.sources[0].url = ${JSON.stringify(brand.officialCatalogUrl)};
     d.loadCatalog(${JSON.stringify(catalog)});
@@ -109,8 +113,21 @@ app.whenReady().then(async () => {
   await go({ name: 'home' });
   await shot('home.png');
 
+  await go({ name: 'browse' });
+  await shot('browse.png');
+  await js(`(() => { const i = document.getElementById('browseQuery'); i.value = 'minecraft'; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await shot('browse-search.png');
+  await js(`(() => { const i = document.getElementById('browseQuery'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await go({ name: 'packs' });
+  await shot('packs.png');
   await go({ name: 'game', gameId: 'repo' });
   await shot('game.png');
+  await js(`window.__menu('[data-act="mod-menu"]', 'mod-menu')`);
+  await shot('mod-menu.png');
+  await js(`document.body.click()`);
+  await js(`window.__menu('#tbBrand', 'app-menu')`);
+  await shot('app-menu.png');
+  await js(`document.body.click()`);
 
   await go({ name: 'mod', gameId: 'repo', modId: 'repomimesis' });
   await shot('mod.png');

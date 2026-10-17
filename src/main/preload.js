@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('launcher', {
   readClipboard: invoke('clipboard:read'),
   installUpdate: invoke('update:install'),
 
+  winMinimize: invoke('win:minimize'),
+  winMaximize: invoke('win:maximize'),
+  winClose: invoke('win:close'),
+  onWindow: on('window'),
   onChanged: on('changed'),
   onSession: on('session'),
   onDownload: on('download'),

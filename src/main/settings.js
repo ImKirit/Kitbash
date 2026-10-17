@@ -10,6 +10,8 @@ const DEFAULTS = {
   catalogSource: '',     // empty = the built-in official catalog. A folder or URL here replaces it (for testing)
   sources: [],           // unofficial sources the user added: { id, url, name, confirmedDownload, addedAt }
   minecraftPath: '',     // extra folder to look for Minecraft Java in
+  overlay: true,         // install the in-game overlay with every session
+  overlayHotkey: 'F10',  // key that opens it in the game
   seen: {},              // modId -> version the user has already looked at
   importDismissed: {},   // "game/mod" -> true, import offer answered
   selection: {},         // gameId -> [modId] last selection
