@@ -49,7 +49,7 @@ namespace KitbashOverlay
             string file = Path.Combine(Path.GetDirectoryName(Info.Location) ?? "", "kitbash-overlay.json");
             try
             {
-                data = JsonUtility.FromJson<OverlayData>(File.ReadAllText(file));
+                data = MiniJson.ToData(MiniJson.Parse(File.ReadAllText(file)));
             }
             catch (Exception e)
             {
@@ -64,7 +64,7 @@ namespace KitbashOverlay
                 catch { Logger.LogWarning("Unknown hotkey " + data.hotkey + ", using F10"); }
             }
             BepInEx.Logging.Logger.Listeners.Add(new ProblemListener(problems));
-            Logger.LogInfo("Kitbash overlay ready, " + data.mods.Length + " mod(s) in this session, open with " + hotkey);
+            Logger.LogInfo("Kitbash overlay ready, " + data.mods.Length + " mod(s) in this session, open with " + hotkey + (data.demo ? ", DEMO MODE (all mods shown as loaded)" : ""));
         }
 
         // ---- state of the mods -------------------------------------------------
@@ -90,6 +90,13 @@ namespace KitbashOverlay
                 list.Add(st);
             }
             return list;
+        }
+
+// Demo mode: only when the launcher writes "demo": true. Every mod of the
+        // JSON is shown as loaded without errors, as it would look in the real game.
+        private List<ModState> DemoStates()
+        {
+            return data.mods.Select(m => new ModState { Mod = m, Loaded = true }).ToList();
         }
 
         private static string SafeFull(string path)
@@ -143,7 +150,7 @@ namespace KitbashOverlay
             if (s == null) s = new Styles();
             if (states == null || Time.realtimeSinceStartup - statesAt > 2f)
             {
-                states = Collect();
+                states = data.demo ? DemoStates() : Collect();
                 statesAt = Time.realtimeSinceStartup;
             }
 
@@ -160,7 +167,13 @@ namespace KitbashOverlay
             GUI.Box(panel, GUIContent.none, s.Panel);
             GUILayout.BeginArea(new Rect(panel.x + 18f, panel.y + 14f, panel.width - 36f, panel.height - 28f));
 
+            GUILayout.BeginHorizontal();
             GUILayout.Label(T(data.text.title, "KITBASH  ·  MODS IN THIS SESSION"), s.Head);
+            GUILayout.FlexibleSpace();
+            if (data.demo) GUILayout.Label("DEMO", s.Tag);
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(data.gameName))
+                GUILayout.Label(data.gameName + (string.IsNullOrEmpty(data.packName) ? "" : "  ·  " + T(data.text.pack, "Modpack") + " " + data.packName), s.Name);
             GUILayout.Space(6f);
             int ok = states.Count(x => x.Loaded && x.Errors.Count == 0);
             GUILayout.Label(string.Format(T(data.text.summary, "{0} of {1} loaded without problems"), ok, states.Count), s.Muted);
@@ -314,7 +327,7 @@ namespace KitbashOverlay
         // Flat, dark, thin. Built once from 1x1 textures.
         private class Styles
         {
-            public readonly GUIStyle Panel, Row, RowOn, Head, Muted, Name, Title, Body, Key, Ok, Warn, Bad, WarnText, Close;
+            public readonly GUIStyle Panel, Row, RowOn, Head, Muted, Name, Title, Body, Key, Ok, Warn, Bad, WarnText, Close, Tag;
 
             private static Texture2D Solid(Color c)
             {
@@ -355,6 +368,8 @@ namespace KitbashOverlay
                 Close = Text(18, muted);
                 Close.hover.textColor = new Color(1f, 0.45f, 0.42f);
                 Close.alignment = TextAnchor.MiddleCenter;
+                Tag = Text(10, muted, FontStyle.Bold);
+                Tag.wordWrap = false;
             }
         }
     }
@@ -367,6 +382,9 @@ namespace KitbashOverlay
         public Texts text;
         public ModInfo[] mods;
         public SelfTest selfTest;
+        public bool demo;
+        public string gameName;
+        public string packName;
     }
 
     [Serializable] public class ModInfo
@@ -399,6 +417,6 @@ namespace KitbashOverlay
 
     [Serializable] public class Texts
     {
-        public string title, summary, loaded, notLoaded, errors, empty, footer, keys, steps, problems, notLoadedHelp;
+        public string title, summary, loaded, notLoaded, errors, empty, footer, keys, steps, problems, notLoadedHelp, pack;
     }
 }

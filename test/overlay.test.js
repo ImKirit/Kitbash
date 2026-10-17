@@ -78,3 +78,20 @@ test('schema checks the usage field', () => {
   assert.ok(validateCatalog(cat({ steps: 'not a list' })).some((e) => /usage\.steps/.test(e)));
   assert.ok(validateCatalog(cat({ other: 1 })).some((e) => /unknown field/.test(e)));
 });
+
+test('demo mode only when the flag is set', async () => {
+  const mod = { id: 'm', name: 'Mod', version: '1', summary: 'S', files: [{ path: 'BepInEx/plugins/M/M.dll' }] };
+  const read = (opts) => JSON.parse(overlayFiles([mod], { dll: Buffer.from('x'), ...opts })[1].data);
+  assert.equal(read({}).demo, undefined);
+  assert.equal(read({ demo: 'yes' }).demo, undefined);
+  assert.equal(read({ demo: 1 }).demo, undefined);
+  assert.equal(read({ demo: true, gameName: 'R.E.P.O.', packName: 'Freitagabend' }).demo, true);
+  // a real launch never passes the flag
+  const s = h.scene();
+  const ctxOverlay = { enabled: true, hotkey: 'F10', lang: 'en' };
+  const extra = overlayFiles(s.plan.mods, { ...ctxOverlay, dll: Buffer.from('x') });
+  await s.engine.prepare(s.plan, { ...s.files, extra });
+  const json = JSON.parse(fs.readFileSync(path.join(s.gameDir, OVERLAY_DIR, 'kitbash-overlay.json'), 'utf8'));
+  assert.equal(json.demo, undefined);
+  h.cleanupDir(s.root);
+});

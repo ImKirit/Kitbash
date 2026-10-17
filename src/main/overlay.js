@@ -16,13 +16,13 @@ const TEXTS = {
     title: 'KITBASH  ·  MODS IN THIS SESSION', summary: '{0} of {1} loaded without problems', loaded: 'loaded',
     notLoaded: 'not loaded', errors: 'loaded, {0} error(s)', empty: 'No mod data for this session.',
     footer: '{0} closes  ·  click a mod for how to use it', keys: 'KEYS', steps: 'HOW TO USE IT', problems: 'PROBLEMS',
-    notLoadedHelp: 'BepInEx did not load this mod. The loader log has the reason.',
+    notLoadedHelp: 'BepInEx did not load this mod. The loader log has the reason.', pack: 'Modpack',
   },
   de: {
     title: 'KITBASH  ·  MODS IN DIESER SITZUNG', summary: '{0} von {1} ohne Probleme geladen', loaded: 'geladen',
     notLoaded: 'nicht geladen', errors: 'geladen, {0} Fehler', empty: 'Keine Mod-Daten für diese Sitzung.',
     footer: '{0} schließt  ·  Mod anklicken für die Bedienung', keys: 'TASTEN', steps: 'SO BENUTZT DU SIE', problems: 'PROBLEME',
-    notLoadedHelp: 'BepInEx hat diese Mod nicht geladen. Der Grund steht im Loader-Log.',
+    notLoadedHelp: 'BepInEx hat diese Mod nicht geladen. Der Grund steht im Loader-Log.', pack: 'Modpack',
   },
 };
 
@@ -44,7 +44,10 @@ function modInfo(mod, lang) {
   };
 }
 
-// Files for the engine: [{ rel, data }]. opts: { lang, hotkey, selfTest: { screenshot, delaySeconds } }
+// Files for the engine: [{ rel, data }].
+// opts: { lang, hotkey, gameName, packName, selfTest: { screenshot, delaySeconds }, demo }
+// demo is only ever set by the demo script, never by a launch: it makes the
+// overlay show every mod as loaded without looking at the game.
 function overlayFiles(mods, opts = {}) {
   const lang = opts.lang === 'de' ? 'de' : 'en';
   const json = {
@@ -53,6 +56,9 @@ function overlayFiles(mods, opts = {}) {
     text: TEXTS[lang],
     mods: mods.map((m) => modInfo(m, lang)),
   };
+  if (opts.gameName) json.gameName = opts.gameName;
+  if (opts.packName) json.packName = opts.packName;
+  if (opts.demo === true) json.demo = true;
   if (opts.selfTest && opts.selfTest.screenshot) json.selfTest = { screenshot: opts.selfTest.screenshot, delaySeconds: opts.selfTest.delaySeconds || 15 };
   const dll = opts.dll || fs.readFileSync(DLL_SOURCE);
   return [
