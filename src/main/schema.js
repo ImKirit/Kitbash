@@ -240,6 +240,24 @@ function validateCatalog(c, outside = {}) {
       modIds.add(m.id);
     }
   });
+  if (c.upcoming !== undefined) {
+    if (!Array.isArray(c.upcoming) || c.upcoming.length > 40) errors.push('catalog.upcoming: must be a list of at most 40 entries');
+    else c.upcoming.forEach((u, i) => {
+      const w = `upcoming[${i}]`;
+      if (!isObj(u) || !ID.test(u.id || '')) { errors.push(`${w}.id: bad id`); return; }
+      if (!isStr(u.name, 80)) errors.push(`${w}.name: missing`);
+      if (u.steamAppId !== undefined && (!isInt(u.steamAppId) || u.steamAppId === 0)) errors.push(`${w}.steamAppId: must be a Steam app id`);
+      if (u.status !== undefined) checkText(u.status, `${w}.status`, errors, 40);
+      if (u.title !== undefined) checkText(u.title, `${w}.title`, errors, 80);
+      if (u.teaser !== undefined) checkText(u.teaser, `${w}.teaser`, errors, 400);
+      if (u.details !== undefined) {
+        if (!Array.isArray(u.details) || u.details.length > 20) errors.push(`${w}.details: must be a list`);
+        else u.details.forEach((d, k) => checkText(d, `${w}.details[${k}]`, errors, 300));
+      }
+      if (u.featured !== undefined && typeof u.featured !== 'boolean') errors.push(`${w}.featured: must be true or false`);
+      if (u.minecraft !== undefined && typeof u.minecraft !== 'boolean') errors.push(`${w}.minecraft: must be true or false`);
+    });
+  }
   return errors;
 }
 

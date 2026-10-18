@@ -30,6 +30,7 @@ if (!window.launcher) {
     loaders: { 'bepinex5-x64': { id: 'bepinex5-x64', name: 'BepInEx', version: '5.4.23.5' } },
     sources: [{ ...official, url: '', fetchedAt: new Date().toISOString(), error: null, offline: false, mods: 2, skipped: [] }],
     packs: [], library: [], cacheBytes: 0, sessions: {}, downloads: {}, update: { status: 'current' }, imports: [],
+    account: { signedIn: false, user: null, lastSync: null, error: null, linking: false }, history: [], favorites: [],
   };
 
   const checks = {};
@@ -57,6 +58,10 @@ if (!window.launcher) {
     importData: () => ok({ ok: true }), dismissImport: () => ok(true),
     openData: () => ok(), openGame: () => ok(), openLog: () => ok(), openExternal: () => ok(), pickFolder: () => ok(null),
     copyText: () => ok(true), readClipboard: () => ok(''), installUpdate: () => ok(false),
+    toggleFavorite: (id) => { state.favorites = state.favorites.includes(id) ? state.favorites.filter((x) => x !== id) : [...state.favorites, id]; fire('changed'); return ok({ favorites: state.favorites }); },
+    clearHistory: () => { state.history = []; fire('changed'); return ok(true); },
+    accountStatus: () => ok(state.account), accountLogin: () => ok(state.account), accountCancel: () => ok(true),
+    accountLogout: () => { state.account = { signedIn: false }; fire('changed'); return ok(state.account); }, accountSync: () => ok(state.account),
     winMinimize: () => ok(true), winMaximize: () => ok(true), winClose: () => ok(true), onWindow: () => { },
     onChanged: (cb) => listeners.changed.push(cb), onSession: (cb) => listeners.session.push(cb),
     onDownload: (cb) => listeners.download.push(cb), onUpdate: (cb) => listeners.update.push(cb),
@@ -70,6 +75,7 @@ if (!window.launcher) {
       state.games = catalog.games.map((g) => ({ ...g, source: official, installed: g.status === 'available', dir: g.status === 'available' ? 'D:\\Games\\SteamLibrary\\steamapps\\common\\' + g.executable.replace('.exe', '') : null }));
       state.mods = catalog.mods.map((m) => mod(m.id, m.game, m.name, m.version, m.summary, m.package.size, { ...m, localId: m.id, source: official }));
       state.sources[0].mods = state.mods.length;
+      state.upcoming = catalog.upcoming || [];
     },
   };
 }

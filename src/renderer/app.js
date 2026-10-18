@@ -553,7 +553,9 @@ function viewSettings() {
       <div class="lrow"><div class="main"><div class="title">${esc(T('Show the overlay in the game'))}</div><div class="sub">${esc(T('A small panel inside the game that shows which mods loaded and how to use them. Installed with every launch and removed afterwards.'))}</div></div>
         <select class="input" style="width:160px" data-change="overlay">${opt('true', String(st.overlay !== false), T('On'))}${opt('false', String(st.overlay !== false), T('Off'))}</select></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Key'))}</div><div class="sub">${esc(T('Pick a key the mods of your game do not use.'))}</div></div>
-        <select class="input" style="width:160px" data-change="overlayHotkey">${['F6', 'F8', 'F10', 'F11', 'F12'].map((k) => opt(k, st.overlayHotkey || 'F10', k)).join('')}</select></div></div></div>
+        <select class="input" style="width:160px" data-change="overlayHotkey">${['F6', 'F8', 'F10', 'F11', 'F12'].map((k) => opt(k, st.overlayHotkey || 'F10', k)).join('')}</select></div>
+      <div class="lrow"><div class="main"><div class="title">${esc(T('Overlay opacity'))}</div><div class="sub">${esc(T('How solid the panel in the game looks.'))}</div></div>
+        <select class="input" style="width:160px" data-change="overlayOpacity">${['0.75', '0.85', '0.9', '0.95', '1'].map((v) => opt(v, String(st.overlayOpacity || 0.9), Math.round(Number(v) * 100) + ' %')).join('')}</select></div></div></div>
     <div class="section"><div class="list"><div class="lhead">${ico('search', 13)}<span>${esc(T('Finding things'))}</span></div>
       <div class="lrow"><div class="main"><div class="title">${esc(T('Minecraft folder'))}</div><div class="sub">${esc(st.minecraftPath || T('Only needed if your Minecraft Java is not found by itself.'))}</div></div>
         ${st.minecraftPath ? `<button class="btn small" data-act="mc-clear">${esc(T('Reset'))}</button>` : ''}<button class="btn small" data-act="mc-pick">${esc(T('Choose folder'))}</button></div>
@@ -653,7 +655,8 @@ function render() {
   renderTopbar();
   const v = $('view');
   const top = v.scrollTop;
-  const html = { home: viewHome, browse: viewBrowse, packs: viewPacks, game: viewGame, mod: viewMod, library: viewLibrary, sources: viewSources, settings: viewSettings }[view.name]();
+  const views = { home: viewHome, browse: viewBrowse, packs: viewPacks, game: viewGame, mod: viewMod, library: viewLibrary, sources: viewSources, settings: viewSettings, history: window.viewHistory, news: window.viewNews, account: window.viewAccount };
+  const html = (views[view.name] || viewHome)();
   v.innerHTML = html;
   v.scrollTop = render.last === JSON.stringify(view) ? top : 0;
   render.last = JSON.stringify(view);

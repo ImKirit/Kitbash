@@ -370,3 +370,77 @@ textarea.input { resize: vertical; min-height: 74px; font-family: Consolas, mono
 .btn, .input, textarea.input, select.input, .search, .check { border-color: var(--control); }
 .btn.primary { border-color: var(--accent); }
 .check.on { border-color: var(--accent); }
+
+/* ---------------- account button and avatar ---------------- */
+.account-pill {
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 4px; margin-left: 4px;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; font-size: 13px;
+}
+.account-pill:hover { border-color: var(--control); }
+.account-pill.signin { padding: 0 12px; color: var(--text); }
+.avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 1px var(--line); }
+.avatar.letter { display: inline-grid; place-items: center; background: var(--accent); color: var(--accent-fg); font-weight: 500; }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; display: inline-block; margin-left: 4px; }
+.spin.big { width: 34px; height: 34px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.acct-me { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.acct-me .grow { flex: 1; min-width: 0; }
+.signin-card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 26px; display: grid; justify-items: start; gap: 12px; }
+.btn.discord { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+/* ---------------- home ---------------- */
+.hero-feature { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); min-height: 300px; display: flex; align-items: flex-end; background: var(--panel); margin-bottom: 8px; }
+.hf-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
+.hf-shade { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+.hf-body { position: relative; padding: 26px 28px; max-width: 640px; display: grid; gap: 10px; }
+.hf-body h1 { font-size: 34px; }
+.hf-body .lead { margin: 0; color: #d6d8dc; }
+.hf-body .label { color: #d6d8dc; display: flex; align-items: center; gap: 6px; }
+.hf-meta, .hf-acts { gap: 8px; flex-wrap: wrap; }
+body[data-theme="light"] .hf-shade { background: rgba(255, 255, 255, 0.6); }
+body[data-theme="light"] .hf-body .lead, body[data-theme="light"] .hf-body .label { color: var(--muted); }
+.sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--head-fg); }
+.sec-head a { cursor: pointer; letter-spacing: 1px; color: var(--muted); }
+.sec-head a:hover { color: var(--text); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.tiles.big { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.tile { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); transition: transform 0.2s var(--spring), border-color 0.12s; }
+.tile.click { cursor: pointer; }
+.tile.click:hover { transform: translateY(-3px); border-color: var(--control); }
+.tile.off { opacity: 0.55; }
+.banner-img { display: block; width: 100%; aspect-ratio: 92 / 32; object-fit: cover; opacity: 0.88; border-bottom: 1px solid var(--line); }
+.banner-img.none { display: grid; place-items: center; background: var(--panel2); opacity: 1; }
+.tile-body { padding: 10px 12px 12px; display: grid; gap: 6px; }
+.tile-body .btn { justify-self: start; margin-top: 2px; }
+.cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.modcard .mc-img { display: block; width: 100%; height: 130px; object-fit: cover; opacity: 0.85; border-bottom: 1px solid var(--line); }
+.modcard .mc-img.none { display: block; padding: 0; }
+.modcard .mc-img.none .banner-img { height: 130px; aspect-ratio: auto; border: none; }
+.mc-body { padding: 10px 12px 12px; display: grid; gap: 5px; }
+.mc-body .row { flex-wrap: wrap; gap: 5px; }
+.empty-card { border: 1px dashed var(--line); border-radius: 14px; padding: 34px; display: grid; justify-items: center; gap: 10px; color: var(--muted); text-align: center; }
+
+/* ---------------- modpacks toolbar ---------------- */
+.toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; font-size: 12.5px; }
+.fchip:hover { color: var(--text); border-color: var(--control); }
+.fchip.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.picklist .mlabel { padding: 8px 12px 4px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.nav-item.live { color: var(--text); }
+@media (max-width: 1180px) { .cards3 { grid-template-columns: repeat(2, 1fr); } }
+.sec-head .grow { flex: 1; }
+.hf-img { left: auto; right: 0; width: 58%; object-fit: cover; object-position: center 30%; opacity: 0.7; }
+.hf-shade { display: none; }
+.hf-img { border-left: 1px solid var(--line); width: 46%; object-position: center 22%; }
+/* hero: picture across the whole card, text on a solid plate */
+.hf-img { inset: 0; left: 0; right: auto; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; opacity: 0.5; border-left: none; }
+.hf-img.none, .hf-img.logo-art { display: grid; place-items: center; background: var(--panel2); opacity: 1; }
+.hf-body { background: rgba(8, 8, 9, 0.82); border: 1px solid var(--line); border-radius: 12px; margin: 20px; padding: 22px 24px; }
+body[data-theme="light"] .hf-body { background: rgba(255, 255, 255, 0.88); }
+.logo-art img { max-width: 70%; max-height: 70%; image-rendering: pixelated; object-fit: contain; }
+.banner-img.logo-art { display: grid; place-items: center; background: var(--panel2); opacity: 1; }
+.tiles.soon { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.teaser-art { height: 170px; overflow: hidden; border-radius: 13px 13px 0 0; }
+.teaser-img { display: block; width: 100%; height: 170px; object-fit: cover; opacity: 0.85; }
+.teaser-img.none, .teaser-img.logo-art { display: grid; place-items: center; background: var(--panel2); opacity: 1; }

@@ -13,16 +13,18 @@ const DLL_SOURCE = path.join(__dirname, '..', 'assets', 'KitbashOverlay.dll');
 
 const TEXTS = {
   en: {
-    title: 'KITBASH  ·  MODS IN THIS SESSION', summary: '{0} of {1} loaded without problems', loaded: 'loaded',
-    notLoaded: 'not loaded', errors: 'loaded, {0} error(s)', empty: 'No mod data for this session.',
-    footer: '{0} closes  ·  click a mod for how to use it', keys: 'KEYS', steps: 'HOW TO USE IT', problems: 'PROBLEMS',
-    notLoadedHelp: 'BepInEx did not load this mod. The loader log has the reason.', pack: 'Modpack',
+    title: 'Mods in this session', summary: '{0} of {1} loaded without problems', loaded: 'loaded',
+    notLoaded: 'not loaded', errors: '{0} error(s)', empty: 'No mod data for this session.',
+    footer: '{0} closes', footerHint: 'Click a mod for how to use it', drag: 'Drag to move',
+    keys: 'Keys', steps: 'How to use it', problems: 'Problems', pack: 'Modpack',
+    notLoadedHelp: 'BepInEx did not load this mod. The loader log has the reason.',
   },
   de: {
-    title: 'KITBASH  ·  MODS IN DIESER SITZUNG', summary: '{0} von {1} ohne Probleme geladen', loaded: 'geladen',
-    notLoaded: 'nicht geladen', errors: 'geladen, {0} Fehler', empty: 'Keine Mod-Daten für diese Sitzung.',
-    footer: '{0} schließt  ·  Mod anklicken für die Bedienung', keys: 'TASTEN', steps: 'SO BENUTZT DU SIE', problems: 'PROBLEME',
-    notLoadedHelp: 'BepInEx hat diese Mod nicht geladen. Der Grund steht im Loader-Log.', pack: 'Modpack',
+    title: 'Mods in dieser Sitzung', summary: '{0} von {1} ohne Probleme geladen', loaded: 'geladen',
+    notLoaded: 'nicht geladen', errors: '{0} Fehler', empty: 'Keine Mod-Daten für diese Sitzung.',
+    footer: '{0} schließt', footerHint: 'Mod anklicken für die Bedienung', drag: 'Ziehen zum Verschieben',
+    keys: 'Tasten', steps: 'So benutzt du sie', problems: 'Probleme', pack: 'Modpack',
+    notLoadedHelp: 'BepInEx hat diese Mod nicht geladen. Der Grund steht im Loader-Log.',
   },
 };
 
@@ -57,6 +59,9 @@ function overlayFiles(mods, opts = {}) {
     mods: mods.map((m) => modInfo(m, lang)),
   };
   if (opts.gameName) json.gameName = opts.gameName;
+  if (opts.gameIcon) json.gameIcon = opts.gameIcon;
+  if (typeof opts.opacity === 'number') json.opacity = Math.max(0.6, Math.min(1, opts.opacity));
+  for (const m of json.mods) if (opts.images && opts.images[m.id]) m.image = opts.images[m.id];
   if (opts.packName) json.packName = opts.packName;
   if (opts.demo === true) json.demo = true;
   if (opts.selfTest && opts.selfTest.screenshot) json.selfTest = { screenshot: opts.selfTest.screenshot, delaySeconds: opts.selfTest.delaySeconds || 15 };

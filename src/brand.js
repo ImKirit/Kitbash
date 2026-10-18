@@ -13,6 +13,10 @@ const brand = {
   asideName: '.kitbash-aside',
   // Prefix of exported modpack codes.
   packPrefix: 'KB1-',
+  // Optional account (Discord sign-in and sync). The client id is public,
+  // the secret lives only on the server.
+  accountServer: 'https://imkirit.dev/kitbash',
+  discordClientId: '1561154745140518922',
 };
 
 brand.officialCatalogUrl = `https://raw.githubusercontent.com/${brand.owner}/${brand.modsRepo}/${brand.modsBranch}/catalog.json`;

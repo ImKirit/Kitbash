@@ -116,14 +116,16 @@ namespace KitbashOverlay
                 lang = S(d, "lang"),
                 gameName = S(d, "gameName"),
                 packName = S(d, "packName"),
+                gameIcon = S(d, "gameIcon"),
                 demo = d != null && d.TryGetValue("demo", out var dm) && dm is bool b && b,
             };
+            if (d != null && d.TryGetValue("opacity", out var op) && op is double opd) data.opacity = (float)opd;
             var t = O(d, "text");
             data.text = new Texts
             {
                 title = S(t, "title"), summary = S(t, "summary"), loaded = S(t, "loaded"), notLoaded = S(t, "notLoaded"),
                 errors = S(t, "errors"), empty = S(t, "empty"), footer = S(t, "footer"), keys = S(t, "keys"),
-                steps = S(t, "steps"), problems = S(t, "problems"), notLoadedHelp = S(t, "notLoadedHelp"), pack = S(t, "pack"),
+                steps = S(t, "steps"), problems = S(t, "problems"), notLoadedHelp = S(t, "notLoadedHelp"), pack = S(t, "pack"), drag = S(t, "drag"), footerHint = S(t, "footerHint"),
             };
             var st = O(d, "selfTest");
             if (st != null)
@@ -136,7 +138,7 @@ namespace KitbashOverlay
             {
                 var m = o as Dictionary<string, object>;
                 if (m == null) continue;
-                var mi = new ModInfo { id = S(m, "id"), name = S(m, "name"), version = S(m, "version"), summary = S(m, "summary") };
+                var mi = new ModInfo { id = S(m, "id"), name = S(m, "name"), version = S(m, "version"), summary = S(m, "summary"), image = S(m, "image") };
                 var dl = new List<string>();
                 foreach (var x in L(m, "dlls") ?? new List<object>()) if (x is string xs) dl.Add(xs);
                 mi.dlls = dl.ToArray();

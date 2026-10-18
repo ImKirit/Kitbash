@@ -12,6 +12,9 @@ const DEFAULTS = {
   minecraftPath: '',     // extra folder to look for Minecraft Java in
   overlay: true,         // install the in-game overlay with every session
   overlayHotkey: 'F10',  // key that opens it in the game
+  overlayOpacity: 0.9,   // how solid the overlay panel is, 0.6 to 1
+  favorites: [],         // mod ids the user starred
+  settingsUpdatedAt: null, // when a synced setting was last changed
   seen: {},              // modId -> version the user has already looked at
   importDismissed: {},   // "game/mod" -> true, import offer answered
   selection: {},         // gameId -> [modId] last selection
@@ -22,6 +25,7 @@ class Settings {
     this.file = path.join(dataDir, 'settings.json');
     this.data = { ...DEFAULTS, ...readJson(this.file, {}) };
     if (!Array.isArray(this.data.sources)) this.data.sources = [];
+    if (!Array.isArray(this.data.favorites)) this.data.favorites = [];
     for (const k of ['seen', 'importDismissed', 'selection']) {
       if (!this.data[k] || typeof this.data[k] !== 'object') this.data[k] = {};
     }

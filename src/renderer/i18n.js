@@ -149,6 +149,7 @@
       '{n} Mods haben im Katalog inzwischen eine andere Version. Du bekommst die aktuelle, und alle in einer Lobby brauchen dieselbe Version.',
   };
 
+  window.addDE = (more) => Object.assign(DE, more);
   let lang = 'en';
   window.setLang = (l) => { lang = l === 'de' ? 'de' : 'en'; };
   window.T = (key, vars) => {

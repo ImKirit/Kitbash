@@ -54,6 +54,11 @@ class Packs {
     return JSON.parse(JSON.stringify(target));
   }
 
+  // Replaces the whole list (after a sync).
+  replaceAll(list) { this.list = list.filter((p) => p && typeof p.id === 'string' && Array.isArray(p.mods)); this._save(); }
+
+  played(id) { const p = this.get(id); if (p) { p.lastPlayed = new Date().toISOString(); this._save(); } }
+
   remove(id) {
     const n = this.list.length;
     this.list = this.list.filter((p) => p.id !== id);

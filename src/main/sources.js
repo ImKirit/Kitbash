@@ -194,7 +194,9 @@ class Sources {
         info.mods++;
       }
     }
-    return { games, mods, loaders, sources };
+    const off = this.state.get(OFFICIAL);
+    const upcoming = off && off.catalog && Array.isArray(off.catalog.upcoming) ? off.catalog.upcoming : [];
+    return { games, mods, loaders, sources, upcoming };
   }
 
   // ---- downloads -----------------------------------------------------------

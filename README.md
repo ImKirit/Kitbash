@@ -83,6 +83,27 @@ between, the next start finishes the clean-up from a journal.
 - **Refuses what it should not touch.** Games with anti-cheat, a game that is already
   running, an IL2CPP build for a Mono loader.
 
+### Home, history and news
+
+- **A real start page.** A featured mod or an upcoming project with its teaser, `Continue` with
+  your last sessions, quick launch for your modpacks, new and updated mods, your games.
+- **Game pictures from your own PC.** The icon of the installed exe, otherwise Steam's local
+  library cache, otherwise Steam's public image server by app id. Minecraft's title logo comes
+  from your own Minecraft jar. Everything is cached in the data folder, nothing is bundled.
+- **History** lists every session with game, mods, duration and result, one click plays it again.
+- **News** shows new and updated mods from all catalogs and what changed in the launcher.
+- **Coming soon.** The catalog can announce upcoming projects, the launcher shows them with a
+  teaser and `Notify me`.
+
+### Account (optional)
+
+- **Sign in with Discord** at the top right. Your modpacks, favourites, language, theme, overlay
+  settings and session history then follow you to every PC. Without an account everything stays
+  local and works the same.
+- The first sign-in merges what is on the PC with what is in the account, nothing is dropped.
+- The launcher never holds the Discord secret. The small service in `server/` does the sign-in
+  and stores the synced data, see [server/README.md](server/README.md).
+
 ### In the game
 
 - **Overlay on `F10`.** A small BepInEx plugin that the launcher installs with every launch and
@@ -129,6 +150,8 @@ between, the next start finishes the clean-up from a journal.
 | <img src="docs/mod.png" width="420" alt="Mod page"> | <img src="docs/mod-requirements.png" width="420" alt="Steps and keys of a mod"> |
 | **Mods of a game, with a menu** | **Modpacks** |
 | <img src="docs/mod-menu.png" width="420" alt="Mod list with the row menu open"> | <img src="docs/packs.png" width="420" alt="All modpacks"> |
+| **History** | **Account** |
+| <img src="docs/history.png" width="420" alt="Past sessions"> | <img src="docs/account-menu.png" width="420" alt="Account menu at the top right"> |
 | **Downloads** | **Sources** |
 | <img src="docs/downloads.png" width="420" alt="Downloaded packages"> | <img src="docs/sources.png" width="420" alt="Catalog sources"> |
 | **Warning for unofficial sources** | **Light theme, German** |
@@ -165,6 +188,9 @@ real lobby yet. The mod page says exactly what has been tested.
   cache\images\<source>\   pictures from the catalogs
   store\<game>\<mod>\      settings and saved data of each mod
   sessions\<game>.json     journal of a running session, gone when it is cleaned up
+  history.json             past sessions
+  account.json             the sign-in token (encrypted with Windows), only when signed in
+  cache\art\               game pictures from Steam and your Minecraft jar
   logs\<game>\             the loader log of the last session
 ```
 

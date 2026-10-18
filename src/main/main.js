@@ -2,7 +2,7 @@
 // engine.js, sources.js and session.js, which know nothing about Electron.
 'use strict';
 
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, clipboard, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -17,6 +17,13 @@ const { checkRequirements } = require('./requirements');
 const steamLib = require('./steam');
 const proc = require('./proc');
 const { largestIcon } = require('./exeicon');
+const { gameArt, minecraftArt } = require('./art');
+const { findMinecraftVersions } = require('./requirements');
+const { Account } = require('./account');
+const { pick: pickSynced } = require('./sync');
+const { httpsGet } = require('./download');
+const { readJson, writeJsonAtomic } = require('./util');
+const { fileURLToPath } = require('url');
 
 app.setName(brand.productName);
 app.setAppUserModelId(brand.appId);
@@ -29,7 +36,8 @@ const REFRESH_MS = 30 * 60 * 1000;
 let win = null;
 let tray = null;
 let quitting = false;
-let dataDir, settings, engine, sources, packs, steam;
+let dataDir, settings, engine, sources, packs, steam, account;
+const art = {};        // gameId -> { icon, banner } as file URLs
 let merged = { games: [], mods: [], loaders: {}, sources: [] };
 const sessions = {};   // gameId -> { gameId, modIds, stage, method, log, result, startedAt }
 const downloads = {};  // mod id -> { got, total }
@@ -90,13 +98,92 @@ function gameIcon(game, dir) {
 async function refreshCatalogs() {
   merged = await sources.refresh();
   changed();
+  resolveArt().catch(() => { });
+}
+
+// Icons and banners for every game: installed exe, Steam's local cache, Steam's CDN.
+async function resolveArt() {
+  let any = false;
+  for (const g of merged.games) {
+    if (!g.steam) continue;
+    const inst = gameInstall(g);
+    const a = await gameArt(g, {
+      cacheDir: path.join(dataDir, 'cache', 'art'), steamPath: steam ? steam.path : null, fetch: httpsGet,
+      exeIcon: () => { const u = gameIcon(g, inst.dir); return u ? fileURLToPath(u) : null; },
+    });
+    const next = { icon: a.icon ? pathToFileURL(a.icon).href : null, banner: a.banner ? pathToFileURL(a.banner).href : null, iconPath: a.icon, source: a.source };
+    if (JSON.stringify(next) !== JSON.stringify(art[g.id])) { art[g.id] = next; any = true; }
+  }
+  // upcoming games: Steam art by app id, Minecraft from the local jar
+  for (const u of merged.upcoming || []) {
+    let next = null;
+    if (u.steamAppId) {
+      const a = await gameArt({ id: u.id, steam: { appId: u.steamAppId } }, { cacheDir: path.join(dataDir, 'cache', 'art'), steamPath: steam ? steam.path : null, fetch: httpsGet });
+      next = { icon: a.icon ? pathToFileURL(a.icon).href : null, banner: a.banner ? pathToFileURL(a.banner).href : null };
+    } else if (u.minecraft) {
+      const f = minecraftArt(path.join(dataDir, 'cache', 'art'), findMinecraftVersions(settings.get('minecraftPath')).map((v) => v.file));
+      next = { icon: null, banner: null, logo: f ? pathToFileURL(f).href : null };
+    }
+    if (next && JSON.stringify(next) !== JSON.stringify(art['upcoming:' + u.id])) { art['upcoming:' + u.id] = next; any = true; }
+  }
+  const mc = merged.games.find((g) => g.id === 'minecraft');
+  if (mc && !art.minecraft) {
+    const f = minecraftArt(path.join(dataDir, 'cache', 'art'), findMinecraftVersions(settings.get('minecraftPath')).map((v) => v.file));
+    if (f) { art.minecraft = { icon: null, banner: null, logo: pathToFileURL(f).href }; any = true; }
+  }
+  if (any) changed();
+}
+
+// ---- history and sync ---------------------------------------------------------
+const historyFile = () => path.join(dataDir, 'history.json');
+const readHistory = () => { const h = readJson(historyFile(), []); return Array.isArray(h) ? h : []; };
+function addHistory(entry) {
+  const list = [entry, ...readHistory().filter((x) => x.id !== entry.id)].slice(0, 200);
+  writeJsonAtomic(historyFile(), list);
+  scheduleSync();
+}
+const syncStateFile = () => path.join(dataDir, 'sync-state.json');
+
+function localDoc() {
+  const st = readJson(syncStateFile(), {}) || {};
+  const values = {};
+  for (const k of ['lang', 'theme', 'overlay', 'overlayHotkey', 'overlayOpacity']) values[k] = settings.get(k);
+  return {
+    packs: packs.all(), favorites: settings.get('favorites') || [], history: readHistory(),
+    settings: { values: pickSynced(values), updatedAt: settings.get('settingsUpdatedAt') },
+    deleted: { packs: (st.deleted && st.deleted.packs) || [] },
+  };
+}
+
+function applyDoc(doc) {
+  packs.replaceAll(doc.packs || []);
+  writeJsonAtomic(historyFile(), doc.history || []);
+  const patch = { favorites: doc.favorites || [], ...(doc.settings && doc.settings.values ? pickSynced(doc.settings.values) : {}) };
+  if (doc.settings && doc.settings.updatedAt) patch.settingsUpdatedAt = doc.settings.updatedAt;
+  settings.patch(patch);
+  writeJsonAtomic(syncStateFile(), { deleted: doc.deleted || { packs: [] } });
+}
+
+let syncTimer = null;
+let syncing = false;
+async function syncNow() {
+  if (!account.status().signedIn || syncing) return account.status();
+  syncing = true;
+  try { applyDoc(await account.sync(localDoc())); } catch { /* status carries the error */ } finally { syncing = false; changed(); }
+  return account.status();
+}
+function scheduleSync() {
+  if (!account || !account.status().signedIn) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncNow(), 3000);
 }
 
 // ---- state for the window ---------------------------------------------------
 function buildState() {
   const seen = settings.get('seen');
   const firstRun = Object.keys(seen).length === 0;
-  const games = merged.games.map((g) => { const inst = gameInstall(g); return { ...g, ...inst, icon: gameIcon(g, inst.dir) }; });
+  const games = merged.games.map((g) => { const inst = gameInstall(g); const a = art[g.id] || {}; return { ...g, ...inst, icon: gameIcon(g, inst.dir) || a.icon || null, banner: a.banner || null, logo: a.logo || null }; });
+  const upcoming = (merged.upcoming || []).map((u) => ({ ...u, ...(art['upcoming:' + u.id] || {}) }));
   const mods = merged.mods.map((m) => ({
     ...m,
     download: sources.downloadState(m),
@@ -115,10 +202,11 @@ function buildState() {
   return {
     brand: { name: brand.productName, homepage: brand.homepage },
     version: pkg.version, dev: DEV, lang: lang(),
-    settings: { lang: settings.get('lang'), theme: settings.get('theme'), minecraftPath: settings.get('minecraftPath'), selection: settings.get('selection'), overlay: settings.get('overlay') !== false, overlayHotkey: settings.get('overlayHotkey') || 'F10' },
+    settings: { lang: settings.get('lang'), theme: settings.get('theme'), minecraftPath: settings.get('minecraftPath'), selection: settings.get('selection'), overlay: settings.get('overlay') !== false, overlayHotkey: settings.get('overlayHotkey') || 'F10', overlayOpacity: settings.get('overlayOpacity') || 0.9 },
     steamFound: !!steam, games, mods, loaders: merged.loaders, sources: merged.sources,
     packs: packs.all(), library: sources.library(), cacheBytes: sources.cacheBytes(),
     sessions, downloads, update, imports,
+    account: account.status(), history: readHistory(), favorites: settings.get('favorites') || [], upcoming,
   };
 }
 
@@ -126,7 +214,7 @@ function buildState() {
 function sessionCtx() {
   return {
     engine, sources, steam, isRunning: proc.isRunning, minecraftPath: settings.get('minecraftPath'),
-    overlay: { enabled: settings.get('overlay') !== false, hotkey: settings.get('overlayHotkey') || 'F10', lang: lang() },
+    overlay: { enabled: settings.get('overlay') !== false, hotkey: settings.get('overlayHotkey') || 'F10', lang: lang(), opacity: Number(settings.get('overlayOpacity')) || 0.9 },
   };
 }
 
@@ -147,6 +235,14 @@ function trackSession(gameId, modIds, runner) {
   updateTray();
   runner(emit).then((result) => {
     s.result = result;
+    const g = gameById(gameId);
+    addHistory({
+      id: s.startedAt.toString(36) + '-' + gameId, gameId, gameName: g ? g.name : gameId, modIds,
+      modNames: modIds.map((id) => { const m = modById(id); return m ? (m.name.en || m.name) : id; }),
+      packName: s.packName || null, startedAt: new Date(s.startedAt).toISOString(), endedAt: new Date().toISOString(),
+      ok: !!result.ok, stage: result.stage || null, error: result.ok ? null : (result.error || (result.problems && result.problems[0] && result.problems[0].message) || null),
+      played: !!(result.method),
+    });
     s.stage = result.ok ? 'done' : 'failed';
     s.endedAt = Date.now();
     send('session', sessions);
@@ -338,7 +434,7 @@ function registerIpc() {
     return file ? pathToFileURL(file).href : null;
   });
 
-  handle('launch:start', async (gameId, modIds, confirmed) => {
+  handle('launch:start', async (gameId, modIds, confirmed, packId) => {
     if (sessions[gameId] && !sessions[gameId].result) return { error: 'already running', code: 'pending-session' };
     const mods = modIds.map(modById).filter(Boolean);
     if (mods.length !== modIds.length) return { error: 'unknown mod', code: 'mod-unknown' };
@@ -352,13 +448,48 @@ function registerIpc() {
       saveSources();
     }
     settings.patch({ selection: { ...settings.get('selection'), [gameId]: modIds } });
-    trackSession(gameId, modIds, (emit) => runSession(sessionCtx(), { catalogData: merged, gameId, modIds }, emit));
+    const pack = packId ? packs.get(packId) : null;
+    if (pack) packs.played(pack.id);
+    // pictures for the in-game overlay, all local files from the caches
+    const ctx = sessionCtx();
+    const images = {};
+    for (const m of mods) if ((m.images || [])[0]) { try { const f = await sources.imageFile(m, m.images[0]); if (f) images[m.id] = f; } catch { /* no picture */ } }
+    const g = gameById(gameId);
+    Object.assign(ctx.overlay, { gameName: g ? g.name : '', packName: pack ? pack.name : '', images, gameIcon: (art[gameId] && art[gameId].iconPath) || null });
+    trackSession(gameId, modIds, (emit) => runSession(ctx, { catalogData: merged, gameId, modIds }, emit));
+    if (pack) sessions[gameId].packName = pack.name;
     return { started: true };
   });
   handle('session:dismiss', (gameId) => { if (sessions[gameId] && sessions[gameId].result) delete sessions[gameId]; send('session', sessions); return true; });
 
-  handle('pack:save', (pack) => { const p = packs.save(pack); changed(); return { pack: p }; });
-  handle('pack:remove', (id) => { packs.remove(id); changed(); return { ok: true }; });
+  handle('pack:save', (pack) => { const p = packs.save(pack); changed(); scheduleSync(); return { pack: p }; });
+  handle('pack:remove', (id) => {
+    packs.remove(id);
+    const st = readJson(syncStateFile(), {}) || {};
+    const deleted = ((st.deleted && st.deleted.packs) || []).filter((x) => x.id !== id).concat({ id, at: new Date().toISOString() });
+    writeJsonAtomic(syncStateFile(), { deleted: { packs: deleted } });
+    changed(); scheduleSync();
+    return { ok: true };
+  });
+  handle('fav:toggle', (id) => {
+    const f = new Set(settings.get('favorites') || []);
+    if (f.has(id)) f.delete(id); else f.add(id);
+    settings.patch({ favorites: [...f] });
+    changed(); scheduleSync();
+    return { favorites: [...f] };
+  });
+  handle('history:clear', () => { writeJsonAtomic(historyFile(), []); changed(); return true; });
+  handle('account:status', () => account.status());
+  handle('account:login', async () => {
+    const p = account.login();
+    changed();
+    try { await p; } catch (e) { changed(); return { error: e.message }; }
+    await syncNow();
+    return account.status();
+  });
+  handle('account:cancel', () => { account.cancel(); changed(); return true; });
+  handle('account:logout', async () => { await account.logout(); changed(); return account.status(); });
+  handle('account:sync', () => syncNow());
   handle('pack:export', (id) => {
     const p = packs.get(id);
     if (!p) return { error: 'unknown pack', code: 'pack-unknown' };
@@ -390,7 +521,9 @@ function registerIpc() {
 
   handle('settings:save', async (patch) => {
     const allowed = {};
-    for (const k of ['lang', 'theme', 'minecraftPath', 'overlay', 'overlayHotkey']) if (patch && k in patch) allowed[k] = patch[k];
+    for (const k of ['lang', 'theme', 'minecraftPath', 'overlay', 'overlayHotkey', 'overlayOpacity']) if (patch && k in patch) allowed[k] = patch[k];
+    if ('overlayOpacity' in allowed) allowed.overlayOpacity = Math.max(0.6, Math.min(1, Number(allowed.overlayOpacity) || 0.9));
+    if (['lang', 'theme', 'overlay', 'overlayHotkey', 'overlayOpacity'].some((k) => k in allowed)) { allowed.settingsUpdatedAt = new Date().toISOString(); scheduleSync(); }
     if ('overlayHotkey' in allowed && !/^F([1-9]|1[0-2])$/.test(String(allowed.overlayHotkey))) delete allowed.overlayHotkey;
     settings.patch(allowed);
     updateTray();
@@ -441,6 +574,10 @@ else {
     sources = new Sources({ dataDir, officialUrl: argValue('--catalog') || settings.get('catalogSource') || undefined, list: settings.get('sources') });
     packs = new Packs(dataDir);
     steam = steamLib.findSteam();
+    account = new Account({
+      dataDir, server: argValue('--account-server') || brand.accountServer, openUrl: (u) => shell.openExternal(u),
+      protect: safeStorage.isEncryptionAvailable() ? { encrypt: (s) => safeStorage.encryptString(s), decrypt: (b) => safeStorage.decryptString(b) } : null,
+    });
 
     registerIpc();
     sources.loadCached();
@@ -454,6 +591,8 @@ else {
     setupUpdater();
 
     refreshCatalogs().catch(() => { });
+    resolveArt().catch(() => { });
+    if (account.status().signedIn) setTimeout(() => syncNow(), 2000);
     setInterval(() => refreshCatalogs().catch(() => { }), REFRESH_MS);
   });
   app.on('window-all-closed', () => { if (activeSessions().length === 0) app.quit(); });

@@ -41,7 +41,7 @@ function safeEntryPath(name) {
   return parts.join('/');
 }
 
-function readZip(buf) {
+function readZip(buf, opts = {}) {
   if (!Buffer.isBuffer(buf)) throw new ZipError('not a buffer');
   // End of central directory: scan backwards (comment may follow).
   let eocd = -1;
@@ -54,7 +54,7 @@ function readZip(buf) {
   const cdSize = buf.readUInt32LE(eocd + 12);
   const cdOffset = buf.readUInt32LE(eocd + 16);
   if (count === 0xffff || cdOffset === 0xffffffff) throw new ZipError('zip64 archives are not supported');
-  if (count > MAX_ENTRIES) throw new ZipError('too many entries');
+  if (count > (opts.maxEntries || MAX_ENTRIES)) throw new ZipError('too many entries');
   if (cdOffset + cdSize > buf.length) throw new ZipError('central directory out of range');
 
   const entries = [];
