@@ -7,7 +7,7 @@
 (function () {
   const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const CARDS = '.tile.click, .hero-feature, .card.click';
-  const MAX_TILT = 6; // degrees
+  const MAX_TILT = 10; // degrees, the featured card half of it
 
   let active = null;
   let pending = null;
@@ -23,15 +23,13 @@
     const px = Math.min(1, Math.max(0, (x - r.left) / r.width));
     const py = Math.min(1, Math.max(0, (y - r.top) / r.height));
     const big = el.classList.contains('hero-feature');
-    const tilt = big ? MAX_TILT / 3 : MAX_TILT;
+    const tilt = big ? MAX_TILT / 2 : MAX_TILT;
     el.style.setProperty('--ry', ((px - 0.5) * 2 * tilt).toFixed(2) + 'deg');
     el.style.setProperty('--rx', ((0.5 - py) * 2 * tilt).toFixed(2) + 'deg');
-    el.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-    el.style.setProperty('--my', (py * 100).toFixed(1) + '%');
   }
 
   function release(el) {
-    el.classList.remove('fx-on');
+    el.classList.remove('fx-on', 'fx-sweep');
     el.style.setProperty('--rx', '0deg');
     el.style.setProperty('--ry', '0deg');
   }
@@ -40,8 +38,11 @@
     if (reduce.matches) return;
     const el = e.target.closest ? e.target.closest(CARDS) : null;
     if (active && active !== el) release(active);
+    const entered = el && el !== active;
     active = el;
     if (!el) return;
+    // one light band sweeps across the card on every hover enter
+    if (entered) { el.classList.remove('fx-sweep'); void el.offsetWidth; el.classList.add('fx-sweep'); }
     el.classList.add('fx-tilt', 'fx-on');
     pending = { el, x: e.clientX, y: e.clientY };
     if (!frame) frame = requestAnimationFrame(apply);
