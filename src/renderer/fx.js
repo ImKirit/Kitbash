@@ -29,6 +29,7 @@
   }
 
   function release(el) {
+    if (el.classList.contains('fx-sweep')) el.classList.add('fx-leave');
     el.classList.remove('fx-on', 'fx-sweep');
     el.style.setProperty('--rx', '0deg');
     el.style.setProperty('--ry', '0deg');
@@ -42,7 +43,7 @@
     active = el;
     if (!el) return;
     // one light band sweeps across the card on every hover enter
-    if (entered) { el.classList.remove('fx-sweep'); void el.offsetWidth; el.classList.add('fx-sweep'); }
+    if (entered) { el.classList.remove('fx-sweep', 'fx-leave'); void el.offsetWidth; el.classList.add('fx-sweep'); }
     el.classList.add('fx-tilt', 'fx-on');
     pending = { el, x: e.clientX, y: e.clientY };
     if (!frame) frame = requestAnimationFrame(apply);

@@ -466,10 +466,16 @@ body[data-theme="light"] .hf-body { background: rgba(255, 255, 255, 0.88); }
 .fx-sweep::after { animation: sweep 0.72s cubic-bezier(0.22, 0.8, 0.3, 1) 1 both; animation-delay: var(--sweep-delay, 0s); animation-play-state: var(--sweep-state, running); }
 @keyframes sweep {
   0% { transform: translateY(320%) rotate(-17deg); opacity: 0; }
-  12% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateY(-420%) rotate(-17deg); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-164%) rotate(-17deg); opacity: 1; }
 }
+/* after the sweep the band rests in the upper part while the cursor stays, then fades with the tilt */
+.fx-leave::after { animation: sweep-out var(--t-slow) var(--ease) 1 both; }
+@keyframes sweep-out {
+  from { transform: translateY(-164%) rotate(-17deg); opacity: 1; }
+  to { transform: translateY(-164%) rotate(-17deg); opacity: 0; }
+}
+
 body[data-theme="light"] .tile::after, body[data-theme="light"] .card.click::after, body[data-theme="light"] .hero-feature::after { background: rgba(255, 255, 255, 0.5); }
 .tile.click:hover, .card.click:hover { transform: none; }
 .fx-tilt.fx-on:hover { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-3px); }

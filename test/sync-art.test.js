@@ -102,3 +102,27 @@ test('catalog: the upcoming list is optional, checked when present, ignored by t
   assert.ok(validateCatalog({ ...base, upcoming: [{ id: 'ok-id', name: 'x', steamAppId: -1 }] }).some((e) => /steamAppId/.test(e)));
   assert.ok(validateCatalog({ ...base, upcoming: 'nope' }).length);
 });
+
+test('Discord avatar: URL from the service, animated and default pictures, cached locally', async () => {
+  const { avatarSource, localAvatar } = require('../src/main/avatar');
+  const id = '123456789012345678';
+  assert.equal(avatarSource({ id, avatar: `https://cdn.discordapp.com/avatars/${id}/abcdef0123456789abcdef0123456789.png?size=64` }), `https://cdn.discordapp.com/avatars/${id}/abcdef0123456789abcdef0123456789.png?size=128`);
+  assert.equal(avatarSource({ id, avatar: `https://cdn.discordapp.com/avatars/${id}/a_abcdef0123456789abcdef0123456789.gif` }), `https://cdn.discordapp.com/avatars/${id}/a_abcdef0123456789abcdef0123456789.png?size=128`);
+  assert.equal(avatarSource({ id, avatar: null }), `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(id) >> 22n) % 6n)}.png`);
+  assert.match(avatarSource({ id, avatar: 'https://evil.example/x.png' }), /embed\/avatars\/\d\.png$/, 'only Discord pictures are used');
+  assert.equal(avatarSource({ id: 'x' }), null);
+
+  const root = h.tmpDir('avatar');
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+  const asked = [];
+  const fetch = async (url) => { asked.push(url); return png; };
+  const user = { id, avatar: `https://cdn.discordapp.com/avatars/${id}/abcdef0123456789abcdef0123456789.png?size=64` };
+  const f1 = await localAvatar(user, { cacheDir: root, fetch });
+  assert.ok(fs.existsSync(f1));
+  await localAvatar(user, { cacheDir: root, fetch });
+  assert.equal(asked.length, 1, 'cached');
+  const f2 = await localAvatar({ ...user, avatar: user.avatar.replace('abcdef01', '99999999') }, { cacheDir: root, fetch });
+  assert.notEqual(f1, f2, 'a new hash fetches a new picture');
+  assert.equal(await localAvatar(user, { cacheDir: path.join(root, 'other'), fetch: async () => Buffer.from('<html>') }), null, 'not a PNG, letter instead');
+  h.cleanupDir(root);
+});

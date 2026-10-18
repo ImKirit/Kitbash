@@ -20,6 +20,7 @@ const { largestIcon } = require('./exeicon');
 const { gameArt, minecraftArt } = require('./art');
 const { findMinecraftVersions } = require('./requirements');
 const { Account } = require('./account');
+const { localAvatar, avatarSource } = require('./avatar');
 const { pick: pickSynced } = require('./sync');
 const { httpsGet } = require('./download');
 const { readJson, writeJsonAtomic } = require('./util');
@@ -134,6 +135,21 @@ async function resolveArt() {
   if (any) changed();
 }
 
+// ---- the account picture: fetched here, shown from a local file ---------------
+let avatar = { src: null, url: null };
+function accountView() {
+  const st = account.status();
+  if (!st.user) return st;
+  const src = avatarSource(st.user);
+  if (src !== avatar.src) {
+    avatar = { src, url: null };
+    localAvatar(st.user, { cacheDir: path.join(dataDir, 'cache'), fetch: httpsGet }).then((file) => {
+      if (avatar.src === src && file) { avatar.url = pathToFileURL(file).href; changed(); }
+    });
+  }
+  return { ...st, user: { ...st.user, avatar: avatar.url } };
+}
+
 // ---- history and sync ---------------------------------------------------------
 const historyFile = () => path.join(dataDir, 'history.json');
 const readHistory = () => { const h = readJson(historyFile(), []); return Array.isArray(h) ? h : []; };
@@ -167,10 +183,10 @@ function applyDoc(doc) {
 let syncTimer = null;
 let syncing = false;
 async function syncNow() {
-  if (!account.status().signedIn || syncing) return account.status();
+  if (!account.status().signedIn || syncing) return accountView();
   syncing = true;
   try { applyDoc(await account.sync(localDoc())); } catch { /* status carries the error */ } finally { syncing = false; changed(); }
-  return account.status();
+  return accountView();
 }
 function scheduleSync() {
   if (!account || !account.status().signedIn) return;
@@ -206,7 +222,7 @@ function buildState() {
     steamFound: !!steam, games, mods, loaders: merged.loaders, sources: merged.sources,
     packs: packs.all(), library: sources.library(), cacheBytes: sources.cacheBytes(),
     sessions, downloads, update, imports,
-    account: account.status(), history: readHistory(), favorites: settings.get('favorites') || [], upcoming,
+    account: accountView(), history: readHistory(), favorites: settings.get('favorites') || [], upcoming,
   };
 }
 
@@ -479,16 +495,16 @@ function registerIpc() {
     return { favorites: [...f] };
   });
   handle('history:clear', () => { writeJsonAtomic(historyFile(), []); changed(); return true; });
-  handle('account:status', () => account.status());
+  handle('account:status', () => accountView());
   handle('account:login', async () => {
     const p = account.login();
     changed();
     try { await p; } catch (e) { changed(); return { error: e.message }; }
     await syncNow();
-    return account.status();
+    return accountView();
   });
   handle('account:cancel', () => { account.cancel(); changed(); return true; });
-  handle('account:logout', async () => { await account.logout(); changed(); return account.status(); });
+  handle('account:logout', async () => { await account.logout(); changed(); return accountView(); });
   handle('account:sync', () => syncNow());
   handle('pack:export', (id) => {
     const p = packs.get(id);

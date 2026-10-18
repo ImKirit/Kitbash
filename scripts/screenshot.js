@@ -233,11 +233,11 @@ app.whenReady().then(async () => {
   await sleep(1300);
   const r = await js(`(() => { const b = document.querySelector('.tiles .tile.click').getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; })()`);
   const area = { x: Math.max(0, Math.round(r.x - 24)), y: Math.max(0, Math.round(r.y - 24)), width: Math.round(r.w + 48), height: Math.round(r.h + 48) };
-  for (const [name, fx, fy, at] of [['sweep-low.png', 0.12, 0.85, '-0.07s'], ['sweep-high.png', 0.9, 0.15, '-0.17s']]) {
+  for (const [name, fx, fy, at] of [['sweep-rest.png', 0.85, 0.3, null]]) {
     for (let k = 0; k < 6; k++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(r.x + r.w * fx) + k, y: Math.round(r.y + r.h * fy) }); await sleep(40); }
-    await sleep(500);
+    await sleep(1100);
     // freeze the sweep at one moment so the picture shows the band
-    await js(`(() => { const t = document.querySelector('.tiles .tile.click'); t.style.setProperty('--sweep-state', 'paused'); t.style.setProperty('--sweep-delay', '${at}'); t.classList.remove('fx-sweep'); void t.offsetWidth; t.classList.add('fx-sweep'); })()`);
+    if (at) await js(`(() => { const t = document.querySelector('.tiles .tile.click'); t.style.setProperty('--sweep-state', 'paused'); t.style.setProperty('--sweep-delay', '${at}'); t.classList.remove('fx-sweep'); void t.offsetWidth; t.classList.add('fx-sweep'); })()`);
     await sleep(200);
     win.webContents.invalidate();
     await sleep(300);
