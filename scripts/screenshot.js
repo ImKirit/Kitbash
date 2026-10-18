@@ -79,7 +79,7 @@ app.whenReady().then(async () => {
   win.webContents.on('console-message', (_e, level, message, line, source) => { if (level >= 2) console.log('page error:', message, path.basename(String(source)) + ':' + line); });
   const js = (code) => win.webContents.executeJavaScript(code);
   const shot = async (name) => {
-    await sleep(450);
+    await sleep(1150);
     let image = null;
     for (let i = 0; i < 5; i++) {
       win.webContents.invalidate();
@@ -227,6 +227,22 @@ app.whenReady().then(async () => {
 
   await go({ name: 'settings' });
   await shot('settings.png');
+
+  // proof for the hover tilt and sheen: one card, cursor at two places
+  await go({ name: 'browse' });
+  await sleep(1300);
+  const r = await js(`(() => { const b = document.querySelector('.tiles .tile.click').getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; })()`);
+  const area = { x: Math.max(0, Math.round(r.x - 24)), y: Math.max(0, Math.round(r.y - 24)), width: Math.round(r.w + 48), height: Math.round(r.h + 48) };
+  for (const [name, fx, fy] of [['tilt-top-left.png', 0.12, 0.15], ['tilt-bottom-right.png', 0.9, 0.85]]) {
+    for (let k = 0; k < 6; k++) { win.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(r.x + r.w * fx) + k, y: Math.round(r.y + r.h * fy) }); await sleep(40); }
+    await sleep(500);
+    win.webContents.invalidate();
+    await sleep(300);
+    const img = await win.webContents.capturePage(area);
+    fs.writeFileSync(path.join(OUT, name), img.toPNG());
+    console.log('wrote', name, JSON.stringify(await js(`(() => { const t = document.querySelector('.tiles .tile.click'); return [t.className, t.style.getPropertyValue('--rx'), t.style.getPropertyValue('--ry')]; })()`)));
+  }
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: 5, y: 5 });
 
   // German and the light theme
   await js(`window.launcher.saveSettings({ lang: 'de', theme: 'light' }).then(() => window.__demo.refresh())`);

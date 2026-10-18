@@ -50,7 +50,9 @@ function avatar(user, px) {
 }
 const isFav = (id) => (S.favorites || []).includes(id);
 function banner(g) {
-  return g && g.banner ? `<img class="banner-img" src="${esc(g.banner)}" alt="">` : `<div class="banner-img none">${gicon(g, 40)}</div>`;
+  if (g && g.banner) return `<img class="banner-img" src="${esc(g.banner)}" alt="">`;
+  if (g && g.logo) return `<div class="banner-img logo-art"><img src="${esc(g.logo)}" alt=""></div>`;
+  return `<div class="banner-img none">${gicon(g, 40)}</div>`;
 }
 function duration(a, b) {
   const min = Math.round((Date.parse(b) - Date.parse(a)) / 60000);

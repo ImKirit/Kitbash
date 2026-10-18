@@ -444,3 +444,45 @@ body[data-theme="light"] .hf-body { background: rgba(255, 255, 255, 0.88); }
 .teaser-art { height: 170px; overflow: hidden; border-radius: 13px 13px 0 0; }
 .teaser-img { display: block; width: 100%; height: 170px; object-fit: cover; opacity: 0.85; }
 .teaser-img.none, .teaser-img.logo-art { display: grid; place-items: center; background: var(--panel2); opacity: 1; }
+
+/* ---------------- motion ---------------- */
+:root { --t-fast: 0.12s; --t-mid: 0.22s; --t-slow: 0.38s; }
+/* cards tilt toward the cursor, a soft white light follows it */
+.fx-tilt {
+  --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(0);
+  transition: transform var(--t-slow) var(--ease), border-color var(--t-fast);
+  will-change: transform;
+}
+.fx-tilt.fx-on { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-3px); transition: transform 0.08s linear, border-color var(--t-fast); }
+.tile, .card, .hero-feature { position: relative; }
+.tile::after, .card.click::after, .hero-feature::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%);
+  transition: opacity var(--t-mid) var(--ease); z-index: 2;
+}
+.fx-on::after { opacity: 1; }
+body[data-theme="light"] .fx-on::after { opacity: 0.7; }
+.tile.click:hover, .card.click:hover { transform: none; }
+.fx-tilt.fx-on:hover { transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-3px); }
+
+/* buttons: lift on hover, press down hard */
+.btn, .kebab, .fchip, .account-pill, .nav-item, .tab { transition: transform var(--t-mid) var(--spring), background var(--t-fast), border-color var(--t-fast), color var(--t-fast); }
+.kebab:active, .fchip:active, .account-pill:active, .nav-item:active, .tab:active { transform: scale(0.96); transition-duration: 0.07s; }
+.account-pill:hover, .fchip:hover { transform: translateY(-1px); }
+
+/* views, menus, popups */
+.view-in > .wrap { animation: view-in var(--t-mid) var(--ease) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
+#menu { transform-origin: top right; animation: pop var(--t-mid) var(--ease) both; }
+#modal { animation: pop var(--t-mid) var(--ease) both; }
+@keyframes pop { from { opacity: 0; transform: scale(0.96) translateY(-4px); } }
+#modalBackdrop:not([hidden]) { animation: fade var(--t-mid) var(--ease) both; }
+@keyframes fade { from { opacity: 0; } }
+.stagger { animation: rise var(--t-slow) var(--ease) both; animation-delay: calc(var(--i, 0) * 28ms); }
+#toast { animation: pop var(--t-mid) var(--ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tilt, .fx-tilt.fx-on { transform: none !important; }
+  .tile::after, .card.click::after, .hero-feature::after { display: none; }
+}
